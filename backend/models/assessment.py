@@ -103,6 +103,11 @@ class AssessmentData(Base):
     pain_points: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     business_goals: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
+    # Stage-specific (branch) fields, keyed by business_stage. Sparse by design
+    # (only one branch is active per assessment), so stored as a single JSONB
+    # blob rather than one column per field. See docs/10-implementation-plan.MD.
+    branch_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
     # AI readiness
     ai_readiness_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     # The design docs reference "GPT-5.5"; that model id does not exist, so the
     # default here is a real, currently available model. Override via env.
     openai_model: str = "gpt-4o"
+    # Per-request timeout (seconds) and SDK-level retry count — together these
+    # bound the AI failure surface for the two-call chat turn (see docs/10).
+    openai_timeout: float = 30.0
+    openai_max_retries: int = 2
+    # Default sampling temperature; callers may override per request (e.g. lower
+    # for extraction, higher for question generation).
+    openai_temperature: float = 0.2
 
     # --- CORS ---
     # Comma-separated list of allowed origins for the frontend.

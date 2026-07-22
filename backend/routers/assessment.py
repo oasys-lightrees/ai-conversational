@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -13,6 +13,7 @@ from backend.schemas.assessment import (
     StartAssessmentRequest,
     StartAssessmentResponse,
 )
+from backend.services.assessment_service import AssessmentNotFound, AssessmentService
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 
@@ -22,17 +23,38 @@ def start_assessment(
     _: StartAssessmentRequest | None = None,
     db: Session = Depends(get_db),
 ) -> StartAssessmentResponse:
-    """Create a new assessment session. TODO: implement via AssessmentService."""
-    raise NotImplementedError
+    """Create a new assessment session."""
+    assessment = AssessmentService(db).create()
+    return StartAssessmentResponse(
+        assessment_id=assessment.id,
+        status=assessment.status,
+        message="Assessment started.",
+    )
 
 
 @router.get("/{assessment_id}", response_model=AssessmentResponse)
 def get_assessment(assessment_id: uuid.UUID, db: Session = Depends(get_db)) -> AssessmentResponse:
-    """Return all assessment data collected so far. TODO: implement."""
-    raise NotImplementedError
+    """Return all assessment data collected so far."""
+    service = AssessmentService(db)
+    assessment = service.get(assessment_id)
+    if assessment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found.")
+    return AssessmentResponse(
+        assessment_id=assessment.id,
+        status=assessment.status,
+        completion_percentage=assessment.completion_percentage,
+        assessment_data=service.to_state_dict(assessment.data),
+    )
 
 
-@router.delete("/{assessment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{assessment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 def delete_assessment(assessment_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
-    """Delete or archive an assessment. TODO: implement."""
-    raise NotImplementedError
+    """Delete an assessment."""
+    try:
+        AssessmentService(db).delete(assessment_id)
+    except AssessmentNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found.")
