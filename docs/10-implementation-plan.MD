@@ -34,8 +34,38 @@ because it consumes a *completed* assessment.
                         PostgreSQL
 ```
 
-`AssessmentService` (pure persistence) and `OpenAIService` (the single AI
-choke point) are the two foundations. Everything else depends on one or both.
+`AssessmentService` (persistence) and `OpenAIService` (the single AI choke
+point) are the two foundations. Everything else depends on one or both.
+
+> **One edge the graph doesn't draw:** `AssessmentService.update_data` is the
+> *sole writer* of `completion_percentage`, and it recomputes that value by
+> calling `StateService`. So `AssessmentService` depends on `StateService` for
+> the completion calculation (but not for persistence). See Decision D3.
+
+---
+
+## Decisions Locked Before Phase 1
+
+Three items previously parked as "Open Questions" actually gate Phase 1, so
+they are resolved here up front rather than discovered mid-implementation.
+
+- **D1 — Branch-field storage (was Gap G1).** Add a single `JSONB`
+  `branch_data` column to `AssessmentData` for the stage-specific fields
+  (`target_launch_date`, `investment_budget`, `reason_not_operating`,
+  `main_obstacle`, `expansion_plan`, `automation_interest`) rather than one
+  column per field. Rationale: the branch fields are sparse (only one branch is
+  ever active per assessment) and the set is likely to churn. This is a model
+  change handled in **Phase 0.5** before any service logic. Revisit only if a
+  branch field needs to be independently queried/indexed.
+- **D2 — Test database: Postgres via Compose, not SQLite.** `AssessmentData`
+  relies on `JSONB` and `UUID(as_uuid=True)`, which SQLite lacks; shimming them
+  risks "green on SQLite, broken on Postgres" failures on exactly the paths
+  this app leans on. Tests run against the Compose `db` (or an ephemeral
+  Postgres container). Accept the small speed cost for fidelity.
+- **D3 — Completion is written in one place.** `StateService.completion_percentage`
+  *computes*; `Assessment.completion_percentage` *stores*. Only
+  `AssessmentService.update_data` writes the stored value, and it does so by
+  calling `StateService`. No other code path writes it, preventing drift.
 
 ---
 
@@ -50,11 +80,25 @@ phase is verifiable.
   state, chat, and report can be tested without network or an API key.
 - `pip install pytest httpx` (add to a `requirements-dev.txt`).
 
-> Note: `AssessmentData` uses Postgres `JSONB` and `UUID` column types. If tests
-> run on SQLite these need type shims, or run tests against the Compose `db`.
-> Decide this here (see Open Questions).
+> Note: `AssessmentData` uses Postgres `JSONB` and `UUID` column types, so tests
+> run against Postgres (the Compose `db` or an ephemeral container), not SQLite
+> — see Decision D2.
 
 **Exit criteria:** `pytest` runs green against an empty test.
+
+---
+
+## Phase 0.5 — Model change: `branch_data` (Decision D1)
+
+Blocks Phases 2 and 3, so it lands before any service logic.
+
+- Add `branch_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)`
+  to `AssessmentData`.
+- Because `init_db` uses `create_all` (no migrations yet), recreate the schema:
+  `docker compose down -v && python -m backend.database.init_db`, or add an
+  Alembic migration if the environment already holds data worth keeping.
+
+**Exit criteria:** the column exists and round-trips a dict via the ORM.
 
 ---
 
@@ -71,8 +115,10 @@ Implement the two wrappers (the client is already lazily wired):
 - `complete_text(system_prompt, user_prompt) -> str`
   - Same call without JSON mode; return `choices[0].message.content`.
 
-Add: model from `self.model`, temperature control, and a narrow retry/error
-wrapper so callers see one exception type.
+Add: model from `self.model`, temperature control, a per-call **timeout**, and
+a narrow retry/error wrapper so callers see one exception type. This wrapper is
+the product's entire AI failure surface — define the timeout and the
+retry-vs-fail policy here so Phase 3 can rely on it.
 
 **Tests:** monkeypatch the `client` property; assert prompt assembly and
 parse/error paths. No live calls.
@@ -91,18 +137,33 @@ real code.
 - `delete(id)` → delete (cascades to data/conversations/report) **or** set
   `status=ABANDONED` (see Open Questions).
 
-**Field mapping is the crux here** — the extractor speaks the schema-doc
-vocabulary, the DB uses column names + enums. Centralize a mapping:
+#### Deliverable: a dedicated, tested mapping module (`backend/services/field_mapping.py`)
 
-| Extracted key (docs) | DB column | Notes |
-|----------------------|-----------|-------|
+The extractor speaks the schema-doc vocabulary; the DB uses column names,
+enums, and the `branch_data` blob. Every mismatch here is a **silent
+data-loss bug**: a dropped field means `completion_percentage` never rises and
+the conversation loops asking the same question forever. This is the
+highest-frequency defect source in the whole slice, so it is its own module
+with its own test suite — not inline logic scattered through `update_data`.
+
+The module owns one function, `map_extracted_to_columns(fields: dict) -> dict`,
+covering:
+
+| Extracted key (docs) | Destination | Transform |
+|----------------------|-------------|-----------|
 | `location` | `property_location` | rename |
-| `property_type: "Villa"` | `property_type` = `PropertyType.VILLA` | string → enum, upper-case |
-| `booking_channels` | `booking_platforms`? | naming overlap — reconcile |
-| branch fields (`target_launch_date`, …) | *no column exists* | see Gap G1 |
+| `property_type: "Villa"` | `property_type` | string → `PropertyType.VILLA` (upper-case, validate) |
+| `business_stage`, `ownership_type`, `*_process` | same-named columns | string → enum |
+| `booking_channels` | `booking_platforms` | reconcile naming (Open Question 2) |
+| branch fields (`target_launch_date`, …) | `branch_data` JSONB | routed by active `business_stage` (D1) |
+| unknown / unmapped keys | — | dropped (logged at debug) |
 
-**Tests:** round-trip create → update_data → get; enum coercion; unknown keys
-ignored.
+**Tests (first-class):** every row above, plus enum-casing edge cases, unknown
+keys dropped, and a fuzz-style "extractor returned every documented field"
+case asserting nothing silently vanishes.
+
+**Other tests:** round-trip create → update_data → get; `completion_percentage`
+recomputed via `StateService` (D3).
 
 **Exit criteria:** `POST /assessment/start` and `GET /assessment/{id}` work
 end-to-end against the DB with **no OpenAI key set**.
@@ -126,7 +187,8 @@ Requires a **canonical required-field definition** (does not exist in code yet):
 - Always required: `property_type`, `property_location`, `business_stage`
   (per `docs/03`).
 - Conditionally required: the branch fields keyed off `business_stage`
-  (Planning / Idle / Underperforming / Operating).
+  (Planning / Idle / Underperforming / Operating), read from the `branch_data`
+  JSONB blob (Decision D1).
 
 Implement:
 - `missing_fields(state) -> list[str]` — required minus present.
@@ -154,6 +216,14 @@ Order (from `chat_service.py` docstring + `docs/05`):
    (assessment state + missing fields + history).
 6. Persist the assistant reply (role=ASSISTANT); return
    `ChatResponse(reply, completion_percentage, next_stage)`.
+
+**Partial-failure policy (two sequential AI calls per turn).** Steps 2 and 5
+each call the model. If extraction (2) succeeds but question-gen (5) fails,
+**still commit the extracted data** (step 3 already ran) and return a graceful
+fallback reply rather than losing the turn's progress. If extraction itself
+fails, persist the user message, skip the update, and return a "please
+rephrase" reply. Both paths rely on the single exception type from the
+`OpenAIService` wrapper (Phase 1a).
 
 ### `ChatService.history(id) -> list[ConversationMessage]`
 
@@ -202,6 +272,7 @@ documented shape; add API-level tests via `TestClient`.
 | Phase | Deliverable | Needs API key? | Unblocks |
 |-------|-------------|:---:|----------|
 | 0 | Test harness + fake OpenAI | no | everything |
+| 0.5 | `branch_data` model change (D1) | no | 2, 3 |
 | 1a | `OpenAIService` | no (mocked) | 2, 3, 4 |
 | 1b | `AssessmentService` | **no** | 3, first demo |
 | 2 | Extraction + State | yes (real extract) | 3 |
@@ -211,26 +282,27 @@ documented shape; add API-level tests via `TestClient`.
 
 ---
 
-## Known Gaps & Risks (to resolve while implementing)
+## Known Gaps & Risks
 
-- **G1 — Branch fields have no columns.** `docs/03` defines Planning / Idle /
-  Underperforming / Operating branch fields (`target_launch_date`,
-  `investment_budget`, `reason_not_operating`, `main_obstacle`,
-  `expansion_plan`, `automation_interest`) but `AssessmentData` has no columns
-  for most of them. Either add columns or add a `JSONB` catch-all
-  (e.g. `branch_data`). This blocks `StateService` conditional-required logic.
+Resolved gaps are folded into the phases above; the remainder are handled
+in-phase.
+
+- **G1 — Branch fields have no columns.** *Resolved by Decision D1* — added as a
+  `branch_data` JSONB column in Phase 0.5.
+- **G4 — Vocabulary drift** between extractor output and DB (`location` vs
+  `property_location`, string vs enum casing, …). *Resolved* — owned by the
+  dedicated, tested mapping module in Phase 1b.
 - **G2 — AI-readiness sub-scores missing.** `docs/03` lists
   `digital_maturity_score`, `process_standardization`, `data_availability`,
-  `automation_readiness`; the model only has `ai_readiness_score`. Decide
-  whether to compute-and-store the sub-scores or drop them.
+  `automation_readiness`; the model only has `ai_readiness_score`. Decide in
+  Phase 4 whether to compute-and-store the sub-scores or drop them. Not on the
+  chat-slice critical path.
 - **G3 — Report section names differ** between `docs/05` (Current Situation,
   Key Challenges, Expected Benefits…) and the `Report` columns. Pick one
-  vocabulary and map explicitly.
-- **G4 — Vocabulary drift** between extractor output and DB: `location` vs
-  `property_location`, `booking_channels` vs `booking_platforms`, string vs
-  enum casing. A single mapping module avoids scattering this.
+  vocabulary and map explicitly in Phase 4.
 - **G5 — Model id.** Docs say "GPT-5.5" (not real); config defaults to
-  `gpt-4o`. Confirm the intended model and that it supports JSON mode.
+  `gpt-4o`. Confirm the intended model and that it supports JSON mode
+  (needed by `complete_json`, Phase 1a).
 - **G6 — Language.** Prompts must reply in Bahasa Indonesia while field names
   stay English (`docs/05`). Bake this into the system prompts, and test it.
 
@@ -238,12 +310,12 @@ documented shape; add API-level tests via `TestClient`.
 
 ## Open Questions
 
-1. **Test DB:** SQLite with type shims (fast, but `JSONB`/`UUID` need handling)
-   or Postgres via Compose (accurate, slower)? Recommend Postgres for fidelity.
-2. **Delete semantics:** hard delete (row + cascade) or soft
-   (`status=ABANDONED`)? The DELETE endpoint returns `204` either way.
-3. **Completion source of truth:** `StateService.completion_percentage`
-   computes it; `Assessment.completion_percentage` stores it. Confirm
-   `update_data` is the only writer.
-4. **Branch fields (G1):** dedicated columns or a `JSONB` blob? This choice
-   shapes Phase 1b and Phase 2.
+Phase-gating decisions D1–D3 are resolved above. Remaining, none blocking
+Phase 1:
+
+1. **Delete semantics:** hard delete (row + cascade) or soft
+   (`status=ABANDONED`)? The DELETE endpoint returns `204` either way. Decide
+   at Phase 1b; default to hard delete unless retention is required.
+2. **`booking_channels` vs `booking_platforms`:** confirm these are the same
+   field (Underperforming branch vs Technology section) or genuinely distinct.
+   Affects one mapping-module row.
