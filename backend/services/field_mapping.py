@@ -75,6 +75,24 @@ BRANCH_DATA_FIELDS: frozenset[str] = frozenset(
 )
 
 
+def known_input_fields() -> set[str]:
+    """Every input key the mapper accepts (aliases + canonical names).
+
+    Used by ``ExtractionService`` to build the extraction prompt and to drop
+    off-schema keys, so the accepted vocabulary is defined in exactly one place.
+    """
+    return (
+        set(RENAME)
+        | set(ENUM_COLUMNS)
+        | set(INT_COLUMNS)
+        | set(DECIMAL_COLUMNS)
+        | set(BOOL_COLUMNS)
+        | set(STR_COLUMNS)
+        | set(LIST_COLUMNS)
+        | set(BRANCH_DATA_FIELDS)
+    )
+
+
 # --- Coercion helpers (all return None on failure; callers drop None) ---------
 
 

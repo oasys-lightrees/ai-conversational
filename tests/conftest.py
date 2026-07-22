@@ -42,11 +42,17 @@ class FakeOpenAIService:
         self.json_result = json_result or {}
         self.text_result = text_result
         self.model = "fake-model"
+        self.last_system: str | None = None
+        self.last_user: str | None = None
 
-    def complete_json(self, system_prompt: str, user_prompt: str) -> dict:
+    def complete_json(self, system_prompt: str, user_prompt: str, **_kwargs) -> dict:
+        self.last_system = system_prompt
+        self.last_user = user_prompt
         return dict(self.json_result)
 
-    def complete_text(self, system_prompt: str, user_prompt: str) -> str:
+    def complete_text(self, system_prompt: str, user_prompt: str, **_kwargs) -> str:
+        self.last_system = system_prompt
+        self.last_user = user_prompt
         return self.text_result
 
 
