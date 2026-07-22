@@ -38,9 +38,17 @@ class FakeOpenAIService:
     network and no API key.
     """
 
-    def __init__(self, json_result: dict | None = None, text_result: str = "") -> None:
+    def __init__(
+        self,
+        json_result: dict | None = None,
+        text_result: str = "",
+        json_exc: Exception | None = None,
+        text_exc: Exception | None = None,
+    ) -> None:
         self.json_result = json_result or {}
         self.text_result = text_result
+        self.json_exc = json_exc
+        self.text_exc = text_exc
         self.model = "fake-model"
         self.last_system: str | None = None
         self.last_user: str | None = None
@@ -48,11 +56,15 @@ class FakeOpenAIService:
     def complete_json(self, system_prompt: str, user_prompt: str, **_kwargs) -> dict:
         self.last_system = system_prompt
         self.last_user = user_prompt
+        if self.json_exc is not None:
+            raise self.json_exc
         return dict(self.json_result)
 
     def complete_text(self, system_prompt: str, user_prompt: str, **_kwargs) -> str:
         self.last_system = system_prompt
         self.last_user = user_prompt
+        if self.text_exc is not None:
+            raise self.text_exc
         return self.text_result
 
 
