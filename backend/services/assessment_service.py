@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import enum
 import uuid
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -110,5 +111,9 @@ class AssessmentService:
                 continue
             if isinstance(value, enum.Enum):
                 value = value.value
+            elif isinstance(value, Decimal):
+                # Serialize numeric columns as JSON numbers, not strings, so the
+                # API contract is consistent with integer columns.
+                value = float(value)
             state[name] = value
         return state
