@@ -25,30 +25,40 @@ from sqlalchemy.orm import Session
 
 from backend.models import Conversation
 from backend.models.enums import AssessmentStatus, ConversationRole
+from backend.pipeline import DEFAULT_CONFIG, PipelineConfig
 from backend.schemas.chat import ChatResponse, ConversationMessage
 from backend.services.assessment_service import AssessmentNotFound, AssessmentService
 from backend.services.extraction_service import ExtractionService
 from backend.services.openai_service import OpenAIService, OpenAIServiceError
 from backend.services.state_service import StateService
 
-# User-facing copy is Bahasa Indonesia (docs/05).
-CLOSING_MESSAGE = (
-    "Terima kasih! Semua informasi yang dibutuhkan sudah terkumpul. "
-    "Kami akan menyiapkan laporan asesmen Anda."
-)
-FALLBACK_REPHRASE = (
-    "Maaf, saya belum sepenuhnya menangkap informasinya. "
-    "Bisa tolong jelaskan kembali?"
-)
-FALLBACK_GENERIC = "Terima kasih. Bisa ceritakan lebih lanjut tentang properti Anda?"
+# Localized static copy (used when no model call is made). Keyed by config language.
+_STATIC = {
+    "id": {
+        "closing": (
+            "Terima kasih! Semua informasi yang dibutuhkan sudah terkumpul. "
+            "Kami akan menyiapkan laporan asesmen Anda."
+        ),
+        "rephrase": (
+            "Maaf, saya belum sepenuhnya menangkap informasinya. "
+            "Bisa tolong jelaskan kembali?"
+        ),
+        "generic": "Terima kasih. Bisa ceritakan lebih lanjut tentang properti Anda?",
+    },
+    "en": {
+        "closing": (
+            "Thank you! We have all the information we need. "
+            "We'll prepare your assessment report."
+        ),
+        "rephrase": "Sorry, I didn't quite catch that. Could you rephrase?",
+        "generic": "Thank you. Could you tell me more about your property?",
+    },
+}
 
-_NEXT_QUESTION_SYSTEM = """\
-You are a friendly assistant conducting a hospitality business assessment in \
-Bahasa Indonesia. Ask exactly ONE natural follow-up question that helps collect \
-the most important missing field. Do not repeat a question already asked, keep \
-it conversational, and adapt to what the user has already said. Reply with the \
-question text only, in Bahasa Indonesia.
-"""
+# Backwards-compatible constants (default language) for tests/importers.
+CLOSING_MESSAGE = _STATIC["id"]["closing"]
+FALLBACK_REPHRASE = _STATIC["id"]["rephrase"]
+FALLBACK_GENERIC = _STATIC["id"]["generic"]
 
 
 class ChatService:
@@ -59,12 +69,17 @@ class ChatService:
         assessment_service: AssessmentService | None = None,
         extraction_service: ExtractionService | None = None,
         state_service: StateService | None = None,
+        config: PipelineConfig | None = None,
     ) -> None:
         self.db = db
+        self.config = config or DEFAULT_CONFIG
         self.openai = openai_service or OpenAIService()
-        self.state = state_service or StateService(self.openai)
-        self.assessments = assessment_service or AssessmentService(db, self.state)
-        self.extraction = extraction_service or ExtractionService(self.openai)
+        self.state = state_service or StateService(self.openai, config=self.config)
+        self.assessments = assessment_service or AssessmentService(db, self.state, self.config)
+        self.extraction = extraction_service or ExtractionService(self.openai, self.config)
+
+    def _static(self, key: str) -> str:
+        return _STATIC.get(self.config.language, _STATIC["id"])[key]
 
     def handle_message(self, assessment_id: uuid.UUID, message: str) -> ChatResponse:
         """Process one user turn and return the assistant reply.
@@ -98,9 +113,9 @@ class ChatService:
 
         # 5. Decide the reply.
         if extraction_failed:
-            reply = FALLBACK_REPHRASE
+            reply = self._static("rephrase")
         elif not missing:
-            reply = CLOSING_MESSAGE
+            reply = self._static("closing")
             self._mark_completed(assessment)
             completion = assessment.completion_percentage
             stage = "COMPLETE"
@@ -108,7 +123,7 @@ class ChatService:
             try:
                 reply = self._next_question(assessment_id, state, missing)
             except OpenAIServiceError:
-                reply = FALLBACK_GENERIC
+                reply = self._static("generic")
 
         # 6. Persist the assistant reply and return.
         self._add_message(assessment_id, ConversationRole.ASSISTANT, reply)
@@ -137,13 +152,31 @@ class ChatService:
         self.db.commit()
         self.db.refresh(assessment)
 
+    def _next_question_system(self) -> str:
+        lines = [
+            "You are conducting a business assessment. Ask exactly ONE natural "
+            "follow-up question that collects the most important missing field. "
+            "Do not repeat a question already asked; adapt to what the user has "
+            "said. Reply with the question text only.",
+        ]
+        if self.config.knowledge:
+            lines.append(f"\nContext:\n{self.config.knowledge}")
+        if self.config.style:
+            lines.append(f"\nStyle:\n{self.config.style}")
+        lines.append(f"\nRespond in language: {self.config.language}.")
+        return "\n".join(lines)
+
     def _next_question(self, assessment_id: uuid.UUID, state: dict, missing: list[str]) -> str:
+        labels = {f.name: (f.label or f.name) for f in self.config.fields}
+        missing_desc = ", ".join(f"{labels.get(name, name)} ({name})" for name in missing)
         transcript = "\n".join(
             f"{m.role.value}: {m.message}" for m in self.history(assessment_id)
         )
         user_prompt = (
             f"Collected so far (JSON-ish): {state}\n"
-            f"Missing required fields: {', '.join(missing)}\n\n"
+            f"Missing required fields: {missing_desc}\n\n"
             f"Conversation so far:\n{transcript}"
         )
-        return self.openai.complete_text(_NEXT_QUESTION_SYSTEM, user_prompt, temperature=0.5)
+        return self.openai.complete_text(
+            self._next_question_system(), user_prompt, temperature=0.5
+        )

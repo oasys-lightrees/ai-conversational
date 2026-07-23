@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from backend.models import Recommendation, Report
 from backend.models.enums import AssessmentStatus, RecommendationPriority
+from backend.pipeline import DEFAULT_CONFIG, PipelineConfig
 from backend.services.assessment_service import AssessmentNotFound, AssessmentService
 from backend.services.openai_service import OpenAIService
 
@@ -30,17 +31,26 @@ _REPORT_SECTIONS = (
     "next_steps",
 )
 
-_SYSTEM_PROMPT = """\
-You are a hospitality business analyst. Given an assessment of a property, write \
-a concise AI-readiness assessment report in Bahasa Indonesia.
+_REPORT_INSTRUCTIONS = (
+    "You are a business analyst. Given an assessment, write a concise "
+    "AI-readiness assessment report.\n\n"
+    "Return ONLY a JSON object with these string fields: executive_summary, "
+    "business_analysis, operational_analysis, technology_analysis, ai_readiness, "
+    "recommendations_summary, next_steps. Also include \"recommendations\": a "
+    "list of objects with fields title, description, priority (one of LOW, "
+    "MEDIUM, HIGH), and estimated_impact. Base everything strictly on the "
+    "provided data; do not invent facts."
+)
 
-Return ONLY a JSON object with these string fields: executive_summary, \
-business_analysis, operational_analysis, technology_analysis, ai_readiness, \
-recommendations_summary, next_steps. Also include "recommendations": a list of \
-objects with fields title, description, priority (one of LOW, MEDIUM, HIGH), and \
-estimated_impact. Base everything strictly on the provided data; do not invent \
-facts.
-"""
+
+def _report_system_prompt(config: PipelineConfig) -> str:
+    lines = [_REPORT_INSTRUCTIONS]
+    if config.knowledge:
+        lines.append(f"\nContext:\n{config.knowledge}")
+    if config.style:
+        lines.append(f"\nStyle:\n{config.style}")
+    lines.append(f"\nWrite the report in language: {config.language}.")
+    return "\n".join(lines)
 
 
 class AssessmentNotCompleted(Exception):
@@ -48,10 +58,16 @@ class AssessmentNotCompleted(Exception):
 
 
 class ReportService:
-    def __init__(self, db: Session, openai_service: OpenAIService | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        openai_service: OpenAIService | None = None,
+        config: PipelineConfig | None = None,
+    ) -> None:
         self.db = db
+        self.config = config or DEFAULT_CONFIG
         self.openai = openai_service or OpenAIService()
-        self.assessments = AssessmentService(db)
+        self.assessments = AssessmentService(db, config=self.config)
 
     def generate(self, assessment_id: uuid.UUID) -> Report:
         """Generate and persist a report for a completed assessment.
@@ -66,7 +82,9 @@ class ReportService:
             raise AssessmentNotCompleted(str(assessment_id))
 
         state = self.assessments.to_state_dict(assessment.data)
-        raw = self.openai.complete_json(_SYSTEM_PROMPT, f"Assessment data: {state}")
+        raw = self.openai.complete_json(
+            _report_system_prompt(self.config), f"Assessment data: {state}"
+        )
 
         # Idempotent: replace any existing report for this assessment.
         existing = self.db.scalar(
