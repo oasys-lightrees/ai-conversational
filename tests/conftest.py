@@ -89,6 +89,17 @@ def db_session(engine: Engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
+def admin_headers():
+    """Configure a test admin key and return the matching auth header."""
+    from backend.config import settings
+
+    original = settings.admin_api_key
+    settings.admin_api_key = "test-admin-key"
+    yield {"Authorization": "Bearer test-admin-key"}
+    settings.admin_api_key = original
+
+
+@pytest.fixture
 def client(db_session: Session):
     """FastAPI TestClient wired to the test session."""
     from fastapi.testclient import TestClient

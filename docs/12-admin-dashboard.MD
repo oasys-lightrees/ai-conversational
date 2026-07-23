@@ -99,6 +99,13 @@ bars (no new chart dep needed for v1).
 Recommendation: **A** for a fast, credible v1 (one operator), with **B** as the
 upgrade path when multiple admins/audit are needed.
 
+**Locked (from review): Option A — shared admin key.** `ADMIN_API_KEY` env; the
+admin UI sends it as `Authorization: Bearer <key>`; a FastAPI dependency gates
+`/admin/**`. If the key is unset, the admin API is disabled (503).
+
+**Locked scope: Full** — auth + template management (CRUD + field builder) +
+assessments browser + metrics.
+
 ---
 
 ## Phase plan
@@ -131,3 +138,24 @@ browser check of the UI.
   MVP volume; add indexes/materialization only if needed.
 - **Open:** auth model (A/B/C)? Is v1 scope **template management only**, or the
   full set (templates + assessments + metrics)?
+
+---
+
+## Implementation status
+
+**Backend done** (A0, A1, A3, A4), 94 tests passing:
+
+- **A0 — Auth.** `ADMIN_API_KEY` setting; `require_admin` bearer dependency
+  gating all `/api/v1/admin/**` (401 wrong/missing, 503 unconfigured).
+- **A1 — Template CRUD.** `POST/PUT/DELETE /admin/templates`, `clone`,
+  `default`, with config validation (422 invalid, 409 duplicate name, 409
+  delete-in-use).
+- **A3 — Assessments browser.** `GET /admin/assessments` (paginated, status +
+  template filters), `GET /admin/assessments/{id}` (data + transcript + report),
+  `DELETE`.
+- **A4 — Metrics.** `GET /admin/metrics` (status funnel, completion rate,
+  property-type / business-stage breakdowns, recommendations by priority).
+
+**Remaining: A2 (frontend).** The `/admin` route group — login, sidebar,
+template list + form + **field builder**, assessments browser, and the metrics
+overview — plus a typed admin client.

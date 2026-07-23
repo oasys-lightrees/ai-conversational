@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed origins for the frontend.
     cors_origins: str = "http://localhost:3000"
 
+    # --- Admin ---
+    # Shared key gating the /admin API. When empty, the admin API is disabled.
+    admin_api_key: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
