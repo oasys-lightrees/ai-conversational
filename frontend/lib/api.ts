@@ -47,6 +47,14 @@ export interface GenerateReportResponse {
   status: string;
 }
 
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  language: string;
+  is_default: boolean;
+}
+
 export interface Recommendation {
   title: string;
   description: string | null;
@@ -115,8 +123,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // --- Endpoints (mirror docs/08-api-design.MD) -------------------------------
 
 export const api = {
-  startAssessment: () =>
-    request<StartAssessmentResponse>("/assessment/start", { method: "POST" }),
+  getTemplates: () => request<TemplateSummary[]>("/templates"),
+
+  startAssessment: (templateId?: string) =>
+    request<StartAssessmentResponse>("/assessment/start", {
+      method: "POST",
+      body: JSON.stringify(templateId ? { template_id: templateId } : {}),
+    }),
 
   chat: (assessmentId: string, message: string) =>
     request<ChatResponse>("/chat", {

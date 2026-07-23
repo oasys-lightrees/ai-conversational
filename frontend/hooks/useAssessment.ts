@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { ApiError, api, type ConversationRole } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import {
+  clearPendingTemplateId,
   clearStoredAssessmentId,
+  getPendingTemplateId,
   getStoredAssessmentId,
   setStoredAssessmentId,
 } from "@/lib/session";
@@ -54,7 +56,8 @@ export function useAssessment(): UseAssessment {
     started.current = true;
 
     async function startFresh() {
-      const res = await api.startAssessment();
+      const res = await api.startAssessment(getPendingTemplateId() ?? undefined);
+      clearPendingTemplateId();
       setStoredAssessmentId(res.assessment_id);
       setAssessmentId(res.assessment_id);
       setMessages([]);

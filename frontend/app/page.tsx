@@ -6,6 +6,7 @@ import { ClipboardList, MessagesSquare, Sparkles } from "lucide-react";
 
 import { FeatureCard } from "@/components/landing/FeatureCard";
 import { StartCta } from "@/components/landing/StartCta";
+import { TemplatePicker } from "@/components/landing/TemplatePicker";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -30,7 +31,10 @@ export default function LandingPage() {
             <p className="mx-auto max-w-xl text-navy/70">{t("hero.subtitle")}</p>
           </div>
 
-          <StartCta />
+          <div className="flex flex-col items-center gap-4">
+            <TemplatePicker />
+            <StartCta />
+          </div>
 
           <div className="grid w-full gap-4 sm:grid-cols-3">
             {features.map((feature) => (
