@@ -23,15 +23,13 @@ export function PropertySummaryCard({ data }: { data: AssessmentData }) {
   if (rows.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
-      <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
-        Profil Properti
-      </h2>
+    <section className="rounded-xl bg-ink p-5 text-white">
+      <h2 className="mb-3 text-sm font-semibold text-white">Profil Properti</h2>
       <dl className="space-y-2 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4">
-            <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
-            <dd className="text-right text-slate-900 dark:text-slate-100">{value}</dd>
+            <dt className="text-white/60">{label}</dt>
+            <dd className="text-right text-white">{value}</dd>
           </div>
         ))}
       </dl>

@@ -2,7 +2,7 @@ import { PageContainer } from "./PageContainer";
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+    <footer className="border-t border-navy/10 py-6 text-center text-xs text-navy/50">
       <PageContainer>AI Conversational Assessment Agent</PageContainer>
     </footer>
   );

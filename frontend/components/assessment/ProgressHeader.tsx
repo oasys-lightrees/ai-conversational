@@ -10,8 +10,8 @@ export function ProgressHeader({
   stage: string | null;
 }) {
   return (
-    <div className="border-b border-slate-200 py-3 dark:border-slate-800">
-      <div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+    <div className="border-b border-navy/10 py-3">
+      <div className="mb-1.5 flex items-center justify-between text-xs text-navy/60">
         <span>{stageLabel(stage)}</span>
         <span>{Math.round(completion)}%</span>
       </div>

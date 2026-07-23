@@ -15,7 +15,7 @@ export default function AssessmentPage() {
 
   if (phase === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center gap-3 text-slate-500">
+      <main className="flex min-h-screen items-center justify-center gap-3 text-navy/60">
         <Spinner />
         <span>Memuat asesmen...</span>
       </main>
@@ -30,7 +30,7 @@ export default function AssessmentPage() {
         {error && (
           <div
             role="alert"
-            className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
           >
             {error}
           </div>

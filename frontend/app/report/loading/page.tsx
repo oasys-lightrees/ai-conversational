@@ -40,7 +40,7 @@ function GeneratingReport() {
   if (error) {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-sm text-red-600">{error}</p>
         <Button onClick={generate}>Coba lagi</Button>
       </div>
     );
@@ -48,11 +48,9 @@ function GeneratingReport() {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <Spinner className="h-8 w-8 text-blue-600" />
+      <Spinner className="h-8 w-8 text-gold" />
       <h1 className="text-xl font-semibold">Membuat Laporan</h1>
-      <p className="text-slate-600 dark:text-slate-400">
-        LIA sedang menganalisis hasil asesmen Anda...
-      </p>
+      <p className="text-navy/60">LIA sedang menganalisis hasil asesmen Anda...</p>
     </div>
   );
 }
@@ -60,7 +58,7 @@ function GeneratingReport() {
 export default function ReportLoadingPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <Suspense fallback={<Spinner className="h-8 w-8 text-blue-600" />}>
+      <Suspense fallback={<Spinner className="h-8 w-8 text-gold" />}>
         <GeneratingReport />
       </Suspense>
     </main>

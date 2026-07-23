@@ -30,7 +30,7 @@ export default function ReportPage() {
 
   if (status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center gap-3 text-slate-500">
+      <main className="flex min-h-screen items-center justify-center gap-3 text-navy/60">
         <Spinner />
         <span>Memuat laporan...</span>
       </main>
@@ -40,7 +40,7 @@ export default function ReportPage() {
   if (status === "error" || !report) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-sm text-red-600 dark:text-red-400">
+        <p className="text-sm text-red-600">
           {error ?? "Laporan tidak ditemukan."}
         </p>
         <Button onClick={reload}>Coba lagi</Button>

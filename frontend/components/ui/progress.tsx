@@ -9,13 +9,10 @@ export function Progress({ value, className }: { value: number; className?: stri
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn(
-        "h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700",
-        className,
-      )}
+      className={cn("h-2 w-full overflow-hidden rounded-full bg-navy/10", className)}
     >
       <div
-        className="h-full rounded-full bg-blue-600 transition-all duration-500 ease-out"
+        className="h-full rounded-full bg-gold transition-all duration-500 ease-out"
         style={{ width: `${clamped}%` }}
       />
     </div>

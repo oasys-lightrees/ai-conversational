@@ -9,7 +9,7 @@ export function ChatFooter({
   disabled?: boolean;
 }) {
   return (
-    <div className="border-t border-slate-200 py-3 dark:border-slate-800">
+    <div className="border-t border-navy/10 py-3">
       <MessageInput onSend={onSend} disabled={disabled} />
     </div>
   );

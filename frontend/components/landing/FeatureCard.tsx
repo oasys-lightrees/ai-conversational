@@ -10,12 +10,10 @@ export function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 p-5 text-left dark:border-slate-800">
-      <Icon className="mb-3 h-6 w-6 text-blue-600" aria-hidden />
-      <h3 className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-        {title}
-      </h3>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
+    <div className="rounded-xl bg-ink p-5 text-left text-white">
+      <Icon className="mb-3 h-6 w-6 text-gold" aria-hidden />
+      <h3 className="mb-1 text-sm font-semibold text-white">{title}</h3>
+      <p className="text-sm text-white/70">{description}</p>
     </div>
   );
 }

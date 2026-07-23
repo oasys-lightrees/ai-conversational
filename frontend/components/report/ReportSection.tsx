@@ -3,10 +3,8 @@ export function ReportSection({ title, body }: { title: string; body: string | n
   if (!body) return null;
   return (
     <section className="space-y-1.5">
-      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-        {body}
-      </p>
+      <h2 className="text-sm font-semibold text-navy">{title}</h2>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-navy/70">{body}</p>
     </section>
   );
 }

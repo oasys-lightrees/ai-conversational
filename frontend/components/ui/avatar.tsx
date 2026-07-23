@@ -14,9 +14,7 @@ export function Avatar({
     <span
       className={cn(
         "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
-        isAssistant
-          ? "bg-blue-600 text-white"
-          : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100",
+        isAssistant ? "bg-navy text-gold" : "bg-gold text-navy",
         className,
       )}
     >

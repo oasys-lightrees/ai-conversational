@@ -36,7 +36,7 @@ export default function LandingPage() {
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Asesmen Bisnis Properti berbasis AI
             </h1>
-            <p className="mx-auto max-w-xl text-slate-600 dark:text-slate-400">
+            <p className="mx-auto max-w-xl text-navy/70">
               Nilai bisnis properti Anda melalui percakapan natural dan terima
               rekomendasi berbasis AI dari LIA.
             </p>
