@@ -14,8 +14,9 @@ from backend.schemas.report import (
     RecommendationResponse,
     ReportResponse,
 )
-from backend.services.assessment_service import AssessmentNotFound
+from backend.services.assessment_service import AssessmentNotFound, AssessmentService
 from backend.services.report_service import AssessmentNotCompleted, ReportService
+from backend.services.template_service import TemplateService
 
 router = APIRouter(prefix="/report", tags=["report"])
 
@@ -24,9 +25,13 @@ router = APIRouter(prefix="/report", tags=["report"])
 def generate_report(
     request: GenerateReportRequest, db: Session = Depends(get_db)
 ) -> GenerateReportResponse:
-    """Generate the final assessment report."""
+    """Generate the final assessment report using the assessment's own config."""
+    assessment = AssessmentService(db).get(request.assessment_id)
+    if assessment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found.")
+    config = TemplateService(db).config_for(assessment)
     try:
-        report = ReportService(db).generate(request.assessment_id)
+        report = ReportService(db, config=config).generate(request.assessment_id)
     except AssessmentNotFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found.")
     except AssessmentNotCompleted:

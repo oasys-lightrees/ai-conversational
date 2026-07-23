@@ -2,6 +2,7 @@
 
 from backend.models.assessment import Assessment, AssessmentData
 from backend.models.conversation import Conversation
+from backend.models.template import AssessmentTemplate
 from backend.models.enums import (
     AssessmentStatus,
     BusinessStage,
@@ -16,6 +17,7 @@ from backend.models.report import Recommendation, Report
 __all__ = [
     "Assessment",
     "AssessmentData",
+    "AssessmentTemplate",
     "Conversation",
     "Report",
     "Recommendation",

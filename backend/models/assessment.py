@@ -41,6 +41,13 @@ class Assessment(Base):
         Enum(AssessmentStatus), default=AssessmentStatus.IN_PROGRESS, nullable=False
     )
     completion_percentage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # The template this assessment was started from, plus a snapshot of its
+    # config so the run is stable even if the template is later edited.
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("assessment_templates.id"), nullable=True
+    )
+    config_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

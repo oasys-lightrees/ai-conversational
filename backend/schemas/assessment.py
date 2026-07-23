@@ -11,7 +11,9 @@ from backend.models.enums import AssessmentStatus
 
 
 class StartAssessmentRequest(BaseModel):
-    """POST /assessment/start — no body required."""
+    """POST /assessment/start — optional template selection."""
+
+    template_id: uuid.UUID | None = None
 
 
 class StartAssessmentResponse(BaseModel):

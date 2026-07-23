@@ -41,9 +41,12 @@ class AssessmentService:
         self.state = state_service or StateService(config=self.config)
         self.mapper = FieldMapper(self.config)
 
-    def create(self) -> Assessment:
-        """Create a new assessment session with an empty data row."""
-        assessment = Assessment()
+    def create(self, template_id: uuid.UUID | None = None) -> Assessment:
+        """Create a new assessment, snapshotting this service's config onto it."""
+        assessment = Assessment(
+            template_id=template_id,
+            config_snapshot=self.config.model_dump(),
+        )
         assessment.data = AssessmentData()
         self.db.add(assessment)
         self.db.commit()

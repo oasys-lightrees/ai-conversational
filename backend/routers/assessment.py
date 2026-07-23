@@ -14,17 +14,24 @@ from backend.schemas.assessment import (
     StartAssessmentResponse,
 )
 from backend.services.assessment_service import AssessmentNotFound, AssessmentService
+from backend.services.template_service import TemplateNotFound, TemplateService
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 
 
 @router.post("/start", response_model=StartAssessmentResponse, status_code=status.HTTP_201_CREATED)
 def start_assessment(
-    _: StartAssessmentRequest | None = None,
+    request: StartAssessmentRequest | None = None,
     db: Session = Depends(get_db),
 ) -> StartAssessmentResponse:
-    """Create a new assessment session."""
-    assessment = AssessmentService(db).create()
+    """Create a new assessment session, optionally from a chosen template."""
+    template_id = request.template_id if request else None
+    try:
+        resolved_id, config = TemplateService(db).resolve_for_start(template_id)
+    except TemplateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found.")
+
+    assessment = AssessmentService(db, config=config).create(template_id=resolved_id)
     return StartAssessmentResponse(
         assessment_id=assessment.id,
         status=assessment.status,

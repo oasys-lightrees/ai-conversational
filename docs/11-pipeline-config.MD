@@ -167,3 +167,30 @@ running against DEFAULT_CONFIG.
   language toggle). A template can pin a language.
 - **Open:** should `report_sections` be in scope for the first cut (R1)? Should
   templates be editable via API in v1, or seeded-only with CRUD later?
+
+---
+
+## Implementation status
+
+Built (C0–C5), backend green:
+
+- **C0–C3** — `backend/pipeline` (`PipelineConfig`, `FieldSpec`, `DEFAULT_CONFIG`,
+  `FieldMapper`); all services refactored to consume a config. `field_mapping`
+  is now a shim over `FieldMapper(DEFAULT_CONFIG)`.
+- **C4–C5** — `AssessmentTemplate` model; `Assessment.template_id` +
+  `config_snapshot`; seeded templates (Default ID + Hospitality EN) via
+  `init_db`; `GET /templates`, `GET /templates/{id}`; `/assessment/start`
+  accepts `template_id` and snapshots the config; chat/report routers load each
+  assessment's snapshot.
+
+Deviations from the plan above (better in implementation):
+
+- **Single JSON area.** The dynamic fields use the existing `branch_data` JSONB
+  rather than a new `extra_data` column — unifies the two JSON areas, avoids a
+  migration, and keeps parity.
+- **Report structure fixed** (R1): report sections stay typed columns; only the
+  report's tone/knowledge/language are configurable.
+- **Seeded templates only**; template CRUD via API is deferred.
+
+Not yet done: **C6** (frontend template picker).
+
