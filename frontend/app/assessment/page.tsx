@@ -23,7 +23,7 @@ export default function AssessmentPage() {
   }
 
   return (
-    <main className="flex h-screen flex-col">
+    <main className="flex h-[100dvh] flex-col">
       <PageContainer className="flex h-full flex-col">
         <ProgressHeader completion={completion} stage={stage} />
         <ChatWindow messages={messages} typing={phase === "sending"} />
