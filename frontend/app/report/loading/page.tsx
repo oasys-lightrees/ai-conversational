@@ -1,11 +1,68 @@
-// Generating-report page (route: /report/loading).
+"use client";
+
+// Generating-report page (route: /report/loading?assessment_id=...).
 // See docs/frontend/05-page-specification.MD — Page 3.
+
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { ApiError, api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+
+function GeneratingReport() {
+  const router = useRouter();
+  const assessmentId = useSearchParams().get("assessment_id");
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+
+  const generate = async () => {
+    if (!assessmentId) {
+      setError("Asesmen tidak ditemukan.");
+      return;
+    }
+    setError(null);
+    try {
+      const res = await api.generateReport(assessmentId);
+      router.replace(`/report/${res.report_id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal membuat laporan.");
+    }
+  };
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-4 text-center">
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <Button onClick={generate}>Coba lagi</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 text-center">
+      <Spinner className="h-8 w-8 text-blue-600" />
+      <h1 className="text-xl font-semibold">Membuat Laporan</h1>
+      <p className="text-slate-600 dark:text-slate-400">
+        LIA sedang menganalisis hasil asesmen Anda...
+      </p>
+    </div>
+  );
+}
 
 export default function ReportLoadingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-xl font-semibold">Generating Report</h1>
-      <p className="text-slate-600">LIA sedang menganalisis hasil asesmen Anda...</p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      <Suspense fallback={<Spinner className="h-8 w-8 text-blue-600" />}>
+        <GeneratingReport />
+      </Suspense>
     </main>
   );
 }
