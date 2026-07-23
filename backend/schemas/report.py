@@ -27,6 +27,9 @@ class RecommendationResponse(BaseModel):
 
 class ReportResponse(BaseModel):
     report_id: uuid.UUID
+    # The originating assessment, so the report page can fetch its data
+    # (e.g. the property summary) via GET /assessment/{id}.
+    assessment_id: uuid.UUID
     executive_summary: str | None = None
     business_analysis: str | None = None
     operational_analysis: str | None = None
