@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApiError, api, type ConversationRole } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import {
   clearStoredAssessmentId,
   getStoredAssessmentId,
@@ -19,20 +20,11 @@ export interface ChatMessage {
 /** Lifecycle of the chat page. */
 export type Phase = "loading" | "ready" | "sending" | "error" | "complete";
 
-// LIA's opening line. It's UI copy (the backend has no message on start), so it
-// is shown locally and never persisted.
-const GREETING =
-  "Halo, saya LIA. Saya akan membantu menilai bisnis properti Anda melalui " +
-  "percakapan singkat. Untuk memulai, boleh ceritakan tentang properti Anda?";
+// LIA's opening line lives in ChatWindow (rendered live from the dictionary), so
+// it stays out of the persisted message list here.
 
 let counter = 0;
 const nextId = () => `m${Date.now()}-${counter++}`;
-const greeting = (): ChatMessage => ({ id: "greeting", role: "ASSISTANT", content: GREETING });
-
-function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  return "Terjadi kesalahan. Silakan coba lagi.";
-}
 
 export interface UseAssessment {
   messages: ChatMessage[];
@@ -45,6 +37,9 @@ export interface UseAssessment {
 
 export function useAssessment(): UseAssessment {
   const router = useRouter();
+  const { t } = useI18n();
+  const errorMessage = (err: unknown) =>
+    err instanceof ApiError ? err.message : t("error.generic");
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [completion, setCompletion] = useState(0);
@@ -62,7 +57,7 @@ export function useAssessment(): UseAssessment {
       const res = await api.startAssessment();
       setStoredAssessmentId(res.assessment_id);
       setAssessmentId(res.assessment_id);
-      setMessages([greeting()]);
+      setMessages([]);
       setCompletion(0);
       setPhase("ready");
     }
@@ -79,10 +74,9 @@ export function useAssessment(): UseAssessment {
           ]);
           setAssessmentId(stored);
           setCompletion(assessment.completion_percentage);
-          setMessages([
-            greeting(),
-            ...history.map((m) => ({ id: nextId(), role: m.role, content: m.message })),
-          ]);
+          setMessages(
+            history.map((m) => ({ id: nextId(), role: m.role, content: m.message })),
+          );
           setPhase("ready");
           return;
         } catch {

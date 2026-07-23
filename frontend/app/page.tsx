@@ -1,3 +1,5 @@
+"use client";
+
 // Landing page (route: /). See docs/frontend/05-page-specification.MD — Page 1.
 
 import { ClipboardList, MessagesSquare, Sparkles } from "lucide-react";
@@ -7,45 +9,31 @@ import { StartCta } from "@/components/landing/StartCta";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PageContainer } from "@/components/layout/PageContainer";
-
-const FEATURES = [
-  {
-    icon: MessagesSquare,
-    title: "Percakapan Natural",
-    description: "Jawab pertanyaan LIA seperti mengobrol biasa — tanpa formulir panjang.",
-  },
-  {
-    icon: ClipboardList,
-    title: "Analisis Terstruktur",
-    description: "Informasi bisnis Anda diekstrak dan dinilai secara otomatis.",
-  },
-  {
-    icon: Sparkles,
-    title: "Rekomendasi AI",
-    description: "Terima laporan dan rekomendasi yang dipersonalisasi untuk properti Anda.",
-  },
-];
+import { useI18n } from "@/lib/i18n";
 
 export default function LandingPage() {
+  const { t } = useI18n();
+
+  const features = [
+    { icon: MessagesSquare, title: t("feature.chat.title"), description: t("feature.chat.desc") },
+    { icon: ClipboardList, title: t("feature.analysis.title"), description: t("feature.analysis.desc") },
+    { icon: Sparkles, title: t("feature.reco.title"), description: t("feature.reco.desc") },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
         <PageContainer className="flex flex-col items-center gap-10 py-16 text-center">
           <div className="space-y-4">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Asesmen Bisnis Properti berbasis AI
-            </h1>
-            <p className="mx-auto max-w-xl text-navy/70">
-              Nilai bisnis properti Anda melalui percakapan natural dan terima
-              rekomendasi berbasis AI dari LIA.
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t("hero.title")}</h1>
+            <p className="mx-auto max-w-xl text-navy/70">{t("hero.subtitle")}</p>
           </div>
 
           <StartCta />
 
           <div className="grid w-full gap-4 sm:grid-cols-3">
-            {FEATURES.map((feature) => (
+            {features.map((feature) => (
               <FeatureCard key={feature.title} {...feature} />
             ))}
           </div>

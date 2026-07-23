@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import type { ChatMessage } from "@/hooks/useAssessment";
+import { useI18n } from "@/lib/i18n";
 import { ChatBubble } from "./ChatBubble";
 import { TypingIndicator } from "./TypingIndicator";
 
@@ -15,6 +16,7 @@ export function ChatWindow({
   typing: boolean;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -22,6 +24,8 @@ export function ChatWindow({
 
   return (
     <div className="flex-1 space-y-4 overflow-y-auto py-4">
+      {/* LIA's opening line (UI copy; not persisted). */}
+      <ChatBubble role="ASSISTANT">{t("chat.greeting")}</ChatBubble>
       {messages.map((m) => (
         <ChatBubble key={m.id} role={m.role}>
           {m.content}

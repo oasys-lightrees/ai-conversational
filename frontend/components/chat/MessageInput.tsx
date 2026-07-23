@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useI18n } from "@/lib/i18n";
 
 /** Text input with a send button. Enter sends; Shift+Enter inserts a newline. */
 export function MessageInput({
@@ -14,6 +15,7 @@ export function MessageInput({
   onSend: (text: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [value, setValue] = useState("");
 
   const submit = () => {
@@ -37,14 +39,14 @@ export function MessageInput({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={onKeyDown}
         rows={1}
-        placeholder="Ketik pesan Anda..."
+        placeholder={t("chat.placeholder")}
         disabled={disabled}
         className="max-h-32 min-h-[44px]"
       />
       <Button
         onClick={submit}
         disabled={disabled || !value.trim()}
-        aria-label="Kirim pesan"
+        aria-label={t("chat.send")}
         className="h-11 shrink-0 px-4"
       >
         <Send className="h-4 w-4" />

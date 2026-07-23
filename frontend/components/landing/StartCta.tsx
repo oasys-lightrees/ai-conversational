@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 import { clearStoredAssessmentId, getStoredAssessmentId } from "@/lib/session";
 
 /** Primary call-to-action. Offers to resume when an assessment is in progress. */
 export function StartCta() {
   const router = useRouter();
+  const { t } = useI18n();
   const [hasResume, setHasResume] = useState(false);
 
   useEffect(() => {
@@ -24,11 +26,11 @@ export function StartCta() {
   return (
     <div className="flex flex-col items-center gap-3 sm:flex-row">
       <Button onClick={resume} className="px-8 py-3 text-base">
-        {hasResume ? "Lanjutkan Asesmen" : "Mulai Asesmen"}
+        {hasResume ? t("cta.resume") : t("cta.start")}
       </Button>
       {hasResume && (
         <Button variant="secondary" onClick={startNew}>
-          Mulai Baru
+          {t("cta.new")}
         </Button>
       )}
     </div>
