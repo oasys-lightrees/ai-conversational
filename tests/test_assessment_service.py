@@ -87,3 +87,14 @@ def test_to_state_dict_flattens_branch_and_enums(db_session):
     state = svc.to_state_dict(fetched.data)
     assert state["property_type"] == "VILLA"  # enum -> value
     assert state["investment_budget"] == 50000  # flattened from branch_data
+
+
+def test_to_state_dict_numeric_columns_are_floats(db_session):
+    svc = AssessmentService(db_session)
+    assessment = svc.create()
+    svc.update_data(assessment.id, {"occupancy_rate": "55.5", "total_units": 12})
+    state = svc.to_state_dict(svc.get(assessment.id).data)
+    # Decimal columns serialize as JSON numbers (float), consistent with ints.
+    assert state["occupancy_rate"] == 55.5
+    assert isinstance(state["occupancy_rate"], float)
+    assert isinstance(state["total_units"], int)

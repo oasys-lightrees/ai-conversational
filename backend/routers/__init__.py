@@ -1,5 +1,5 @@
 """API routers."""
 
-from backend.routers import assessment, chat, conversation, report
+from backend.routers import admin, assessment, chat, conversation, report, template
 
-__all__ = ["assessment", "chat", "conversation", "report"]
+__all__ = ["admin", "assessment", "chat", "conversation", "report", "template"]

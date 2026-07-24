@@ -38,15 +38,33 @@ class FakeOpenAIService:
     network and no API key.
     """
 
-    def __init__(self, json_result: dict | None = None, text_result: str = "") -> None:
+    def __init__(
+        self,
+        json_result: dict | None = None,
+        text_result: str = "",
+        json_exc: Exception | None = None,
+        text_exc: Exception | None = None,
+    ) -> None:
         self.json_result = json_result or {}
         self.text_result = text_result
+        self.json_exc = json_exc
+        self.text_exc = text_exc
         self.model = "fake-model"
+        self.last_system: str | None = None
+        self.last_user: str | None = None
 
-    def complete_json(self, system_prompt: str, user_prompt: str) -> dict:
+    def complete_json(self, system_prompt: str, user_prompt: str, **_kwargs) -> dict:
+        self.last_system = system_prompt
+        self.last_user = user_prompt
+        if self.json_exc is not None:
+            raise self.json_exc
         return dict(self.json_result)
 
-    def complete_text(self, system_prompt: str, user_prompt: str) -> str:
+    def complete_text(self, system_prompt: str, user_prompt: str, **_kwargs) -> str:
+        self.last_system = system_prompt
+        self.last_user = user_prompt
+        if self.text_exc is not None:
+            raise self.text_exc
         return self.text_result
 
 
@@ -68,6 +86,17 @@ def db_session(engine: Engine) -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture
+def admin_headers():
+    """Configure a test admin key and return the matching auth header."""
+    from backend.config import settings
+
+    original = settings.admin_api_key
+    settings.admin_api_key = "test-admin-key"
+    yield {"Authorization": "Bearer test-admin-key"}
+    settings.admin_api_key = original
 
 
 @pytest.fixture

@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import enum
 import uuid
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from backend.models import Assessment, AssessmentData
-from backend.services.field_mapping import map_extracted_to_columns
+from backend.pipeline import DEFAULT_CONFIG, FieldMapper, PipelineConfig
 from backend.services.state_service import StateService
 
 # Columns excluded from the flat state dict (system/bookkeeping, not content).
@@ -29,13 +30,23 @@ class AssessmentNotFound(Exception):
 
 
 class AssessmentService:
-    def __init__(self, db: Session, state_service: StateService | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        state_service: StateService | None = None,
+        config: PipelineConfig | None = None,
+    ) -> None:
         self.db = db
-        self.state = state_service or StateService()
+        self.config = config or DEFAULT_CONFIG
+        self.state = state_service or StateService(config=self.config)
+        self.mapper = FieldMapper(self.config)
 
-    def create(self) -> Assessment:
-        """Create a new assessment session with an empty data row."""
-        assessment = Assessment()
+    def create(self, template_id: uuid.UUID | None = None) -> Assessment:
+        """Create a new assessment, snapshotting this service's config onto it."""
+        assessment = Assessment(
+            template_id=template_id,
+            config_snapshot=self.config.model_dump(),
+        )
         assessment.data = AssessmentData()
         self.db.add(assessment)
         self.db.commit()
@@ -60,12 +71,12 @@ class AssessmentService:
             data = AssessmentData(assessment_id=assessment.id)
             assessment.data = data
 
-        columns, branch = map_extracted_to_columns(fields)
+        columns, extra = self.mapper.map(fields)
         for key, value in columns.items():
             setattr(data, key, value)
-        if branch:
+        if extra:
             merged = dict(data.branch_data or {})
-            merged.update(branch)
+            merged.update(extra)
             data.branch_data = merged
 
         # Sole writer of completion_percentage (Decision D3).
@@ -110,5 +121,9 @@ class AssessmentService:
                 continue
             if isinstance(value, enum.Enum):
                 value = value.value
+            elif isinstance(value, Decimal):
+                # Serialize numeric columns as JSON numbers, not strings, so the
+                # API contract is consistent with integer columns.
+                value = float(value)
             state[name] = value
         return state

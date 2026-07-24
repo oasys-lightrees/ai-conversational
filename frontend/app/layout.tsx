@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { I18nProvider } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "AI Conversational Assessment Agent",
@@ -14,7 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body>{children}</body>
+      <body className="bg-white text-navy antialiased">
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
+          <I18nProvider>{children}</I18nProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

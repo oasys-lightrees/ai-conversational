@@ -12,6 +12,13 @@ const config: Config = {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
+      colors: {
+        // Brand palette. White dominates the layout; navy is the ink/primary,
+        // gold the accent, and `ink` (darker navy) fills emphasis cards/sections.
+        navy: "#12233F",
+        ink: "#0D1B32",
+        gold: "#C9A84C",
+      },
     },
   },
   plugins: [],

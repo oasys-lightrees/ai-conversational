@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.routers import assessment, chat, conversation, report
+from backend.routers import admin, assessment, chat, conversation, report, template
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
@@ -26,6 +26,8 @@ app.include_router(assessment.router, prefix=settings.api_v1_prefix)
 app.include_router(chat.router, prefix=settings.api_v1_prefix)
 app.include_router(conversation.router, prefix=settings.api_v1_prefix)
 app.include_router(report.router, prefix=settings.api_v1_prefix)
+app.include_router(template.router, prefix=settings.api_v1_prefix)
+app.include_router(admin.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health", tags=["health"])
