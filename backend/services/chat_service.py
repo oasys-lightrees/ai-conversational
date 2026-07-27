@@ -32,6 +32,13 @@ from backend.services.extraction_service import ExtractionService
 from backend.services.openai_service import OpenAIService, OpenAIServiceError
 from backend.services.state_service import StateService
 
+SECTION_ORDER = [
+    "CLIENT",
+    "PROPERTY",
+    "BUSINESS",
+    "CHALLENGES",
+    "GOALS",
+]
 # Localized static copy (used when no model call is made). Keyed by config language.
 _STATIC = {
     "id": {
@@ -154,29 +161,113 @@ class ChatService:
 
     def _next_question_system(self) -> str:
         lines = [
-            "You are conducting a business assessment. Ask exactly ONE natural "
-            "follow-up question that collects the most important missing field. "
-            "Do not repeat a question already asked; adapt to what the user has "
-            "said. Reply with the question text only.",
+            "You are LIA (Lightrees Intelligence Assistant), conducting a structured business assessment.",
+
+            "Your objective is to collect all REQUIRED assessment fields through a natural conversation.",
+
+            "Rules:",
+            "- Ask EXACTLY ONE question at a time.",
+            "- Ask ONLY about the missing required fields provided.",
+            "- Prefer broad questions that can fill multiple missing fields.",
+            "- Do NOT ask questions unrelated to the missing required fields.",
+            "- Do NOT repeat questions if the user has already provided enough information.",
+            "- If the user answers 'tidak tahu', 'belum ada', 'belum kepikiran', 'tidak yakin', or similar, treat it as a valid answer and continue to another field.",
+            "- Do NOT investigate indefinitely or keep asking follow-up questions about the same topic.",
+            "- Only ask a follow-up question if the previous answer is truly insufficient to fill a required field.",
+            "- Do NOT invent new topics or additional assessment questions.",
+            "- Keep the conversation concise and efficient.",
+
+            "Response format:",
+            "- Briefly acknowledge the user's previous answer when appropriate.",
+            "- Then ask ONE natural question.",
+            "- Do NOT provide recommendations or explanations during the assessment.",
+            "- Reply in one or two short sentences only.",
         ]
+
         if self.config.knowledge:
-            lines.append(f"\nContext:\n{self.config.knowledge}")
+            lines.append(f"\nDomain Knowledge:\n{self.config.knowledge}")
+
         if self.config.style:
-            lines.append(f"\nStyle:\n{self.config.style}")
+            lines.append(f"\nPersona:\n{self.config.style}")
+
         lines.append(f"\nRespond in language: {self.config.language}.")
+
         return "\n".join(lines)
 
-    def _next_question(self, assessment_id: uuid.UUID, state: dict, missing: list[str]) -> str:
-        labels = {f.name: (f.label or f.name) for f in self.config.fields}
-        missing_desc = ", ".join(f"{labels.get(name, name)} ({name})" for name in missing)
+    def _next_question(
+            self,
+            assessment_id: uuid.UUID,
+            state: dict,
+            missing: list[str],
+    ) -> str:
+        field_map = {f.name: f for f in self.config.fields}
+
+        def section_priority(section: str) -> int:
+            try:
+                return SECTION_ORDER.index(section)
+            except ValueError:
+                return len(SECTION_ORDER)
+
+        # Collected information
+        collected = [
+            f"✓ {field.label}: {state[field.name]}"
+            for field in self.config.fields
+            if field.name in state
+        ]
+
+        # Missing fields ordered by conversation flow
+        missing_fields = sorted(
+            (field_map[name] for name in missing),
+            key=lambda field: (
+                section_priority(field.section),
+                self.config.fields.index(field),
+            ),
+        )
+
+        # Group missing fields by section
+        grouped_missing: dict[str, list[str]] = {}
+
+        for field in missing_fields:
+            grouped_missing.setdefault(field.section, []).append(
+                (
+                    f"• {field.label}\n"
+                    f"  Description: {field.description or 'No description'}"
+                )
+            )
+
+        missing_text = []
+
+        for section in SECTION_ORDER:
+            if section not in grouped_missing:
+                continue
+
+            missing_text.append(f"=== {section} ===")
+            missing_text.extend(grouped_missing[section])
+            missing_text.append("")
+
         transcript = "\n".join(
-            f"{m.role.value}: {m.message}" for m in self.history(assessment_id)
+            f"{m.role.value}: {m.message}"
+            for m in self.history(assessment_id)
         )
-        user_prompt = (
-            f"Collected so far (JSON-ish): {state}\n"
-            f"Missing required fields: {missing_desc}\n\n"
-            f"Conversation so far:\n{transcript}"
-        )
+
+        user_prompt = f"""
+    Collected Information
+
+    {chr(10).join(collected) if collected else "None"}
+
+    Missing Required Fields
+
+    {chr(10).join(missing_text)}
+
+    Conversation History
+
+    {transcript}
+
+    Generate the next question.
+    """
+
         return self.openai.complete_text(
-            self._next_question_system(), user_prompt, temperature=0.5
+            self._next_question_system(),
+            user_prompt,
+            temperature=0.2,
         )
