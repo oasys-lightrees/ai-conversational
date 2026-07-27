@@ -265,7 +265,9 @@ class ChatService:
 
     Generate the next question.
     """
-
+        print("=" * 80)
+        print(user_prompt)
+        print("=" * 80)
         return self.openai.complete_text(
             self._next_question_system(),
             user_prompt,
