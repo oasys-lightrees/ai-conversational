@@ -12,8 +12,10 @@ Authoritative docs for the system as built:
 | [09 — Build & Run](09-build-and-run.MD) | Setup: Docker Compose and local dev |
 | [13 — API Reference](13-api-reference.MD) | All endpoints (public + admin), request/response shapes |
 | [14 — Configuration & Operations](14-configuration-and-operations.MD) | Env vars, admin auth, authoring templates, testing |
+| [16 — Deployment (AWS)](16-deployment.MD) | Instance sizing, single-box vs managed, secrets, TLS, checklist |
 | [11 — Pipeline Config](11-pipeline-config.MD) | The configurable pipeline: `PipelineConfig`, `FieldSpec`, hybrid storage, templates |
 | [12 — Admin Dashboard](12-admin-dashboard.MD) | Admin design: templates, assessments browser, metrics, auth |
+| [15 — Improvements](15-improvement.MD) | Forward-looking architecture / roadmap notes |
 
 ## Design docs (original intent)
 
@@ -47,6 +49,7 @@ authoritative.
 ## Reading paths
 
 - **Run it:** README → [09](09-build-and-run.MD) → [14](14-configuration-and-operations.MD)
+- **Deploy it:** [16 — Deployment](16-deployment.MD) → [14](14-configuration-and-operations.MD)
 - **Integrate:** [13 — API Reference](13-api-reference.MD)
 - **Configure assessments:** [11](11-pipeline-config.MD) → [14 · Authoring templates](14-configuration-and-operations.MD)
 - **Operate:** [12](12-admin-dashboard.MD) → [14](14-configuration-and-operations.MD)
