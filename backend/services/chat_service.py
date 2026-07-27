@@ -266,7 +266,32 @@ class ChatService:
     Generate the next question.
     """
         print("=" * 80)
+        print("SYSTEM PROMPT")
+        print("=" * 80)
+        print(self._next_question_system())
+
+        print("=" * 80)
+        print("CURRENT STATE")
+        print("=" * 80)
+        print(state)
+
+        print("=" * 80)
+        print("MISSING FIELDS")
+        print("=" * 80)
+        print(missing)
+
+        print("=" * 80)
+        print("ALL CONFIG FIELDS")
+        print("=" * 80)
+        print([f.name for f in self.config.fields])
+
+        print("=" * 80)
+        print("USER PROMPT")
+        print("=" * 80)
         print(user_prompt)
+
+        print("=" * 80)
+        print("END PROMPT")
         print("=" * 80)
         return self.openai.complete_text(
             self._next_question_system(),
