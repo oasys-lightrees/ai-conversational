@@ -43,10 +43,12 @@ Best for a demo or low-traffic pilot.
    docker compose up -d --build
    docker compose exec backend python -m backend.database.init_db
    ```
-6. **TLS + routing** — put a reverse proxy in front (Caddy/Nginx with Let's
-   Encrypt, or an ALB + ACM certificate) terminating HTTPS and routing to the
-   frontend (:3000) and backend (:8000).
-7. Set `CORS_ORIGINS` to the real frontend origin (not `localhost:3000`).
+6. **TLS + routing** — a ready-made **nginx + certbot** reverse proxy is in
+   [`deploy/`](../deploy/README.md): `docker-compose.prod.yml` (db + backend +
+   frontend behind nginx, only 80/443 exposed) plus `init-letsencrypt.sh` to
+   obtain the Let's Encrypt certificate. It sets `CORS_ORIGINS=https://$DOMAIN`
+   and bakes `NEXT_PUBLIC_API_BASE_URL=https://$DOMAIN/api/v1` into the frontend
+   build automatically. (An ALB + ACM certificate is the alternative.)
 
 > The Compose `db` is fine for a demo. For anything you can't lose, point
 > `DATABASE_URL` at RDS instead (below).

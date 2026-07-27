@@ -3,6 +3,10 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
+# NEXT_PUBLIC_* is baked in at build time, so the public API URL must be set
+# here (defaults to localhost for local dev). See docs/16-deployment.MD.
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
 FROM node:20-alpine AS runner

@@ -1,0 +1,86 @@
+# Production stack: db + backend + frontend behind an nginx reverse proxy with
+# Let's Encrypt (certbot). Only nginx exposes ports (80/443); the app services
+# are reachable on the internal network only.
+#
+# Usage (from this deploy/ directory):
+#   export DOMAIN=example.com EMAIL=you@example.com OPENAI_API_KEY=... ADMIN_API_KEY=...
+#   docker compose -f docker-compose.prod.yml build
+#   ./init-letsencrypt.sh            # obtain the certificate, start nginx
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml exec backend python -m backend.database.init_db
+#
+# See docs/16-deployment.MD.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: assessment
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assessment}
+      POSTGRES_DB: assessment
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assessment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://assessment:${POSTGRES_PASSWORD:-assessment}@db:5432/assessment
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      CORS_ORIGINS: https://${DOMAIN}
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the bundle at build time — must be the public API URL.
+        NEXT_PUBLIC_API_BASE_URL: https://${DOMAIN}/api/v1
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      NGINX_ENVSUBST_FILTER: DOMAIN
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    # Reload every 6h so renewed certificates are picked up.
+    command: >-
+      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & /docker-entrypoint.sh nginx -g 'daemon off;'"
+    depends_on:
+      - backend
+      - frontend
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Attempt renewal twice a day.
+    entrypoint: >-
+      /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
+
+volumes:
+  db_data:
