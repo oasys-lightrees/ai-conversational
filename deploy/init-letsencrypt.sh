@@ -25,13 +25,18 @@ if [ -d "$data_path/conf/live/$DOMAIN" ]; then
   fi
 fi
 
-if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-  echo "### Downloading recommended TLS parameters ..."
+if [ ! -s "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -f "$data_path/conf/ssl-dhparams.pem" ]; then
+  echo "### Copying recommended TLS parameters from the Certbot image..."
+
   mkdir -p "$data_path/conf"
-  curl -sfL https://raw.githubusercontent.com/certbot/certbot/main/certbot-nginx/src/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf \
-    > "$data_path/conf/options-ssl-nginx.conf"
-  curl -sfL https://raw.githubusercontent.com/certbot/certbot/main/certbot/certbot/ssl-dhparams.pem \
-    > "$data_path/conf/ssl-dhparams.pem"
+
+  docker run --rm \
+    -v "$PWD/$data_path/conf:/output" \
+    --entrypoint sh certbot/certbot \
+    -c "
+      cp /opt/certbot/src/certbot/src/certbot/_internal/plugins/nginx/tls_configs/options-ssl-nginx.conf /output/ &&
+      cp /opt/certbot/src/certbot/src/certbot/ssl-dhparams.pem /output/
+    "
 fi
 
 echo "### Creating a dummy certificate so nginx can start ..."
