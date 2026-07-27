@@ -1,6 +1,6 @@
 // Typed admin API client. Sends the shared admin key as a bearer token.
 
-import { ApiError, type ReportResponse } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { getAdminKey } from "@/lib/adminAuth";
 
 const API_BASE_URL =
@@ -82,7 +82,6 @@ export interface AssessmentDetail {
   completed_at: string | null;
   assessment_data: Record<string, unknown>;
   conversation: AdminConversationMessage[];
-  report: ReportResponse | null;
 }
 
 export interface NamedCount {
@@ -93,12 +92,10 @@ export interface NamedCount {
 export interface Metrics {
   total_assessments: number;
   by_status: Record<string, number>;
-  reports_generated: number;
   completion_rate: number;
   average_completion: number;
   by_property_type: NamedCount[];
   by_business_stage: NamedCount[];
-  recommendations_by_priority: Record<string, number>;
 }
 
 // --- Request plumbing --------------------------------------------------------

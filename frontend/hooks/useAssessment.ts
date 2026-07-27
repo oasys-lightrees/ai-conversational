@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { ApiError, api, type ConversationRole } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -38,7 +37,6 @@ export interface UseAssessment {
 }
 
 export function useAssessment(): UseAssessment {
-  const router = useRouter();
   const { t } = useI18n();
   const errorMessage = (err: unknown) =>
     err instanceof ApiError ? err.message : t("error.generic");
@@ -113,18 +111,15 @@ export function useAssessment(): UseAssessment {
         ]);
         setCompletion(res.completion_percentage);
         setStage(res.next_stage);
-        if (res.next_stage === "COMPLETE") {
-          setPhase("complete");
-          router.push(`/report/loading?assessment_id=${assessmentId}`);
-        } else {
-          setPhase("ready");
-        }
+        // Assessment-only: on completion the assistant's closing message (a
+        // thank-you) is already shown; just end the conversation, no report.
+        setPhase(res.next_stage === "COMPLETE" ? "complete" : "ready");
       } catch (err) {
         setError(errorMessage(err));
         setPhase("error");
       }
     },
-    [assessmentId, phase, router],
+    [assessmentId, phase],
   );
 
   return { messages, completion, stage, phase, error, sendMessage };

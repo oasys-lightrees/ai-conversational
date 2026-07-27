@@ -3,18 +3,28 @@
 // Assessment chat page (route: /assessment).
 // See docs/frontend/05-page-specification.MD — Page 2.
 
+import { useRouter } from "next/navigation";
+
 import { ProgressHeader } from "@/components/assessment/ProgressHeader";
 import { ChatFooter } from "@/components/chat/ChatFooter";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Spinner } from "@/components/ui/spinner";
 import { useAssessment } from "@/hooks/useAssessment";
 import { useI18n } from "@/lib/i18n";
+import { clearStoredAssessmentId } from "@/lib/session";
 
 export default function AssessmentPage() {
   const { t } = useI18n();
+  const router = useRouter();
   const { messages, completion, stage, phase, error, sendMessage } = useAssessment();
+
+  const startNew = () => {
+    clearStoredAssessmentId();
+    router.push("/");
+  };
 
   if (phase === "loading") {
     return (
@@ -41,10 +51,13 @@ export default function AssessmentPage() {
             {error}
           </div>
         )}
-        <ChatFooter
-          onSend={sendMessage}
-          disabled={phase === "sending" || phase === "complete"}
-        />
+        {phase === "complete" ? (
+          <div className="flex justify-center border-t border-navy/10 py-4">
+            <Button onClick={startNew}>{t("assessment.startNew")}</Button>
+          </div>
+        ) : (
+          <ChatFooter onSend={sendMessage} disabled={phase === "sending"} />
+        )}
       </PageContainer>
     </main>
   );

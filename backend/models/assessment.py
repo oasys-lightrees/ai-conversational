@@ -62,9 +62,6 @@ class Assessment(Base):
     conversations: Mapped[list["Conversation"]] = relationship(  # noqa: F821
         back_populates="assessment", cascade="all, delete-orphan"
     )
-    report: Mapped["Report | None"] = relationship(  # noqa: F821
-        back_populates="assessment", uselist=False, cascade="all, delete-orphan"
-    )
 
 
 class AssessmentData(Base):

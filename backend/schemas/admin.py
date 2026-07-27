@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from backend.models.enums import AssessmentStatus
 from backend.pipeline.config import PipelineConfig
 from backend.schemas.chat import ConversationMessage
-from backend.schemas.report import ReportResponse
 
 
 # --- Templates ---------------------------------------------------------------
@@ -51,7 +50,6 @@ class AssessmentDetail(BaseModel):
     completed_at: datetime | None = None
     assessment_data: dict = {}
     conversation: list[ConversationMessage] = []
-    report: ReportResponse | None = None
 
 
 # --- Metrics -----------------------------------------------------------------
@@ -65,9 +63,7 @@ class NamedCount(BaseModel):
 class Metrics(BaseModel):
     total_assessments: int
     by_status: dict[str, int]
-    reports_generated: int
     completion_rate: float  # completed / total
     average_completion: float
     by_property_type: list[NamedCount]
     by_business_stage: list[NamedCount]
-    recommendations_by_priority: dict[str, int]

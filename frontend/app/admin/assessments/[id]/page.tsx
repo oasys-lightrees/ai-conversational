@@ -85,15 +85,6 @@ export default function AdminAssessmentDetailPage() {
           </div>
         )}
       </section>
-
-      {detail.report && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-navy">Laporan</h2>
-          <div className="rounded-xl bg-ink p-4 text-sm text-white/80">
-            {detail.report.executive_summary ?? "—"}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
