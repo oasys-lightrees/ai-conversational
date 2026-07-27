@@ -42,11 +42,6 @@ export interface ConversationMessage {
   message: string;
 }
 
-export interface GenerateReportResponse {
-  report_id: string;
-  status: string;
-}
-
 export interface TemplateSummary {
   id: string;
   name: string;
@@ -145,13 +140,4 @@ export const api = {
 
   getConversation: (assessmentId: string) =>
     request<ConversationMessage[]>(`/conversation/${assessmentId}`),
-
-  generateReport: (assessmentId: string) =>
-    request<GenerateReportResponse>("/report/generate", {
-      method: "POST",
-      body: JSON.stringify({ assessment_id: assessmentId }),
-    }),
-
-  getReport: (reportId: string) =>
-    request<ReportResponse>(`/report/${reportId}`),
 };

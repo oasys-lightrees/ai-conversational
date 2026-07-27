@@ -1,6 +1,6 @@
 // Assessment id persistence (Decision D-F1).
 // The active assessment id is stored in localStorage so a returning user can
-// resume, and passed via the URL where a page needs it (e.g. /report/loading).
+// resume. All accessors are SSR-safe (no-op / null on the server).
 // All accessors are SSR-safe (no-op / null on the server).
 
 const STORAGE_KEY = "assessmentId";

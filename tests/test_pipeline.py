@@ -11,7 +11,6 @@ from backend.pipeline import DEFAULT_CONFIG, FieldMapper, PipelineConfig
 from backend.pipeline.config import FieldSpec
 from backend.services.assessment_service import AssessmentService
 from backend.services.extraction_service import ExtractionService
-from backend.services.report_service import _report_system_prompt
 from backend.services.state_service import StateService
 from tests.conftest import FakeOpenAIService
 
@@ -82,12 +81,6 @@ def test_extraction_prompt_uses_config():
     assert "Speak concisely like an analyst." in system
     assert "wifi_speed" in system
     assert "VILLA" in system  # enum options listed
-
-
-def test_report_prompt_uses_config():
-    system = _report_system_prompt(CUSTOM)
-    assert "Custom domain knowledge XYZ." in system
-    assert "language: en" in system
 
 
 # --- DB round-trip: dynamic field persists to JSON --------------------------
