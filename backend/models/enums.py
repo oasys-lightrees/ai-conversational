@@ -47,9 +47,3 @@ class OwnershipType(str, enum.Enum):
 class ConversationRole(str, enum.Enum):
     USER = "USER"
     ASSISTANT = "ASSISTANT"
-
-
-class RecommendationPriority(str, enum.Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"

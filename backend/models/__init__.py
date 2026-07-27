@@ -10,22 +10,17 @@ from backend.models.enums import (
     OwnershipType,
     ProcessType,
     PropertyType,
-    RecommendationPriority,
 )
-from backend.models.report import Recommendation, Report
 
 __all__ = [
     "Assessment",
     "AssessmentData",
     "AssessmentTemplate",
     "Conversation",
-    "Report",
-    "Recommendation",
     "AssessmentStatus",
     "BusinessStage",
     "ConversationRole",
     "OwnershipType",
     "ProcessType",
     "PropertyType",
-    "RecommendationPriority",
 ]

@@ -7,12 +7,6 @@ from backend.schemas.assessment import (
 )
 from backend.schemas.chat import ChatRequest, ChatResponse, ConversationMessage
 from backend.schemas.common import ErrorResponse, SuccessResponse
-from backend.schemas.report import (
-    GenerateReportRequest,
-    GenerateReportResponse,
-    RecommendationResponse,
-    ReportResponse,
-)
 
 __all__ = [
     "AssessmentResponse",
@@ -23,8 +17,4 @@ __all__ = [
     "ConversationMessage",
     "SuccessResponse",
     "ErrorResponse",
-    "GenerateReportRequest",
-    "GenerateReportResponse",
-    "RecommendationResponse",
-    "ReportResponse",
 ]

@@ -10,7 +10,6 @@ const API_BASE_URL =
 
 export type AssessmentStatus = "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
 export type ConversationRole = "USER" | "ASSISTANT";
-export type RecommendationPriority = "LOW" | "MEDIUM" | "HIGH";
 
 // --- Response shapes (mirror backend/schemas/*) -----------------------------
 
@@ -48,26 +47,6 @@ export interface TemplateSummary {
   description: string | null;
   language: string;
   is_default: boolean;
-}
-
-export interface Recommendation {
-  title: string;
-  description: string | null;
-  priority: RecommendationPriority;
-  estimated_impact: string | null;
-}
-
-export interface ReportResponse {
-  report_id: string;
-  assessment_id: string;
-  executive_summary: string | null;
-  business_analysis: string | null;
-  operational_analysis: string | null;
-  technology_analysis: string | null;
-  ai_readiness: string | null;
-  recommendations_summary: string | null;
-  next_steps: string | null;
-  recommendations: Recommendation[];
 }
 
 // --- Request plumbing -------------------------------------------------------

@@ -9,14 +9,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Assessment, Report
+from backend.models import Assessment
 from backend.models.enums import AssessmentStatus
 from backend.schemas.admin import (
     AssessmentDetail,
     AssessmentListItem,
     PaginatedAssessments,
 )
-from backend.schemas.report import RecommendationResponse, ReportResponse
 from backend.services.assessment_service import AssessmentNotFound, AssessmentService
 from backend.services.chat_service import ChatService
 
@@ -69,30 +68,6 @@ def get_assessment_detail(
     if assessment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found.")
 
-    report = db.scalar(select(Report).where(Report.assessment_id == assessment_id))
-    report_response = None
-    if report is not None:
-        report_response = ReportResponse(
-            report_id=report.id,
-            assessment_id=report.assessment_id,
-            executive_summary=report.executive_summary,
-            business_analysis=report.business_analysis,
-            operational_analysis=report.operational_analysis,
-            technology_analysis=report.technology_analysis,
-            ai_readiness=report.ai_readiness,
-            recommendations_summary=report.recommendations_summary,
-            next_steps=report.next_steps,
-            recommendations=[
-                RecommendationResponse(
-                    title=rec.title,
-                    description=rec.description,
-                    priority=rec.priority,
-                    estimated_impact=rec.estimated_impact,
-                )
-                for rec in report.recommendations
-            ],
-        )
-
     return AssessmentDetail(
         assessment_id=assessment.id,
         status=assessment.status,
@@ -102,7 +77,6 @@ def get_assessment_detail(
         completed_at=assessment.completed_at,
         assessment_data=service.to_state_dict(assessment.data),
         conversation=ChatService(db).history(assessment_id),
-        report=report_response,
     )
 
 
