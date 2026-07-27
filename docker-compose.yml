@@ -23,7 +23,7 @@ services:
       DATABASE_URL: postgresql+psycopg://assessment:assessment@db:5432/assessment
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3001
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
     ports:
       - "8000:8000"
@@ -38,7 +38,7 @@ services:
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - backend
 
