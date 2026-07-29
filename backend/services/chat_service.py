@@ -17,6 +17,7 @@ Both rely on the single ``OpenAIServiceError`` from ``OpenAIService``.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -32,13 +33,8 @@ from backend.services.extraction_service import ExtractionService
 from backend.services.openai_service import OpenAIService, OpenAIServiceError
 from backend.services.state_service import StateService
 
-SECTION_ORDER = [
-    "CLIENT",
-    "PROPERTY",
-    "BUSINESS",
-    "CHALLENGES",
-    "GOALS",
-]
+logger = logging.getLogger(__name__)
+
 # Localized static copy (used when no model call is made). Keyed by config language.
 _STATIC = {
     "id": {
@@ -178,13 +174,12 @@ class ChatService:
             "- Do NOT investigate indefinitely or keep asking follow-up questions about the same topic.",
             "- Only ask a follow-up question if the previous answer is truly insufficient to fill a required field.",
             "- If there is only ONE missing required field, the next question MUST be about that field.",
-            "- If all required fields have been collected, do NOT ask another question. End the assessment immediately.",
 
-            "Response format:",
-            "- Briefly acknowledge the user's previous answer when appropriate.",
-            "- Then ask ONE natural question.",
-            "- If all required fields are complete, do NOT ask another question.",
-            "- Instead, thank the user and conclude the assessment.",
+            "Response style:",
+            "- Go STRAIGHT to the next question. Do NOT open with 'terima kasih' or any thank-you.",
+            "- Do NOT thank or acknowledge the user on every turn; only add a brief, varied "
+            "acknowledgement occasionally, and never the word 'terima kasih'.",
+            "- Ask ONE clear, natural question about a missing field.",
             "- Do NOT provide recommendations or explanations during the assessment.",
             "- Reply in one or two short sentences only.",
         ]
@@ -200,106 +195,47 @@ class ChatService:
         return "\n".join(lines)
 
     def _next_question(
-            self,
-            assessment_id: uuid.UUID,
-            state: dict,
-            missing: list[str],
+        self,
+        assessment_id: uuid.UUID,
+        state: dict,
+        missing: list[str],
     ) -> str:
         field_map = {f.name: f for f in self.config.fields}
 
-        def section_priority(section: str) -> int:
-            try:
-                return SECTION_ORDER.index(section)
-            except ValueError:
-                return len(SECTION_ORDER)
-
-        # Collected information
+        # What we already have.
         collected = [
-            f"✓ {field.label}: {state[field.name]}"
+            f"✓ {field.label or field.name}: {state[field.name]}"
             for field in self.config.fields
             if field.name in state
         ]
 
-        # Missing fields ordered by conversation flow
+        # Every missing required field, in the config's own field order (so the
+        # conversation flows top-to-bottom). No field is ever dropped.
         missing_fields = sorted(
-            (field_map[name] for name in missing),
-            key=lambda field: (
-                section_priority(field.section),
-                self.config.fields.index(field),
-            ),
+            (field_map[name] for name in missing if name in field_map),
+            key=self.config.fields.index,
         )
-
-        # Group missing fields by section
-        grouped_missing: dict[str, list[str]] = {}
-
-        for field in missing_fields:
-            grouped_missing.setdefault(field.section, []).append(
-                (
-                    f"• {field.label}\n"
-                    f"  Description: {field.description or 'No description'}"
-                )
-            )
-
-        missing_text = []
-
-        for section in SECTION_ORDER:
-            if section not in grouped_missing:
-                continue
-
-            missing_text.append(f"=== {section} ===")
-            missing_text.extend(grouped_missing[section])
-            missing_text.append("")
+        missing_text = [
+            f"• {field.label or field.name}"
+            + (f" — {field.description}" if field.description else "")
+            for field in missing_fields
+        ]
 
         transcript = "\n".join(
-            f"{m.role.value}: {m.message}"
-            for m in self.history(assessment_id)
+            f"{m.role.value}: {m.message}" for m in self.history(assessment_id)
         )
 
-        user_prompt = f"""
-    Collected Information
+        user_prompt = (
+            "Collected so far:\n"
+            + ("\n".join(collected) if collected else "None")
+            + "\n\nStill missing (ask about the first that fits naturally):\n"
+            + ("\n".join(missing_text) if missing_text else "None")
+            + "\n\nConversation so far:\n"
+            + (transcript or "(none)")
+            + "\n\nGenerate the next question."
+        )
 
-    {chr(10).join(collected) if collected else "None"}
-
-    Missing Required Fields
-
-    {chr(10).join(missing_text)}
-
-    Conversation History
-
-    {transcript}
-
-    Generate the next question.
-    """
-        print("=" * 80)
-        print("SYSTEM PROMPT")
-        print("=" * 80)
-        print(self._next_question_system())
-
-        print("=" * 80)
-        print("CURRENT STATE")
-        print("=" * 80)
-        print(state)
-
-        print("=" * 80)
-        print("MISSING FIELDS")
-        print("=" * 80)
-        print(missing)
-
-        print("=" * 80)
-        print("ALL CONFIG FIELDS")
-        print("=" * 80)
-        print([f.name for f in self.config.fields])
-
-        print("=" * 80)
-        print("USER PROMPT")
-        print("=" * 80)
-        print(user_prompt)
-
-        print("=" * 80)
-        print("END PROMPT")
-        print("=" * 80)
+        logger.debug("next_question missing=%s", missing)
         return self.openai.complete_text(
-            self._next_question_system(),
-            user_prompt,
-            temperature=0.2,
+            self._next_question_system(), user_prompt, temperature=0.4
         )
