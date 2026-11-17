@@ -32,8 +32,8 @@ def test_update_data_maps_and_recomputes_completion(db_session):
     fetched = svc.get(assessment.id)
     assert fetched.data.property_type == PropertyType.VILLA
     assert fetched.data.property_location == "Bali"
-    # required = 3 always + 4 underperforming branch = 7; 3 present -> 43%
-    assert fetched.completion_percentage == 43
+    # required = 16 always + 4 underperforming branch = 20; 3 present -> 15%
+    assert fetched.completion_percentage == 15
 
 
 def test_update_data_writes_branch_blob(db_session):

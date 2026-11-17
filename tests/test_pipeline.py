@@ -37,6 +37,24 @@ def test_required_when_conditional():
     assert not spec.is_required({})
 
 
+def test_required_when_matches_case_insensitively():
+    spec = FieldSpec(name="x", required_when={"business_stage": ["underperforming"]})
+    assert spec.is_required({"business_stage": "UNDERPERFORMING"})
+
+
+def test_required_when_matches_booleans():
+    """A boolean column holds Python ``True``; a spec writes it as ``"true"``."""
+    spec = FieldSpec(name="x", required_when={"uses_pms": ["true"]})
+    assert spec.is_required({"uses_pms": True})
+    assert not spec.is_required({"uses_pms": False})
+
+
+def test_required_when_needs_every_condition():
+    spec = FieldSpec(name="x", required_when={"a": ["1"], "b": ["2"]})
+    assert spec.is_required({"a": "1", "b": "2"})
+    assert not spec.is_required({"a": "1"})
+
+
 # --- FieldMapper hybrid storage ---------------------------------------------
 
 
@@ -56,8 +74,35 @@ def test_mapper_drops_unknown_and_uncoercible():
 
 
 def test_default_config_required_always():
+    """Pins the assessment's scope.
+
+    Only required fields are ever asked about, so narrowing this set silently
+    shrinks what the conversation collects (see ``default_config``).
+    """
     always = {f.name for f in DEFAULT_CONFIG.fields if f.required}
-    assert always == {"property_type", "property_location", "business_stage"}
+    assert always == {
+        # Property profile
+        "property_name",
+        "property_type",
+        "property_location",
+        "ownership_type",
+        "total_units",
+        # Business stage
+        "business_stage",
+        # Operations
+        "staff_count",
+        "check_in_process",
+        "housekeeping_process",
+        "maintenance_process",
+        "complaint_handling",
+        # Technology
+        "uses_pms",
+        "accounting_system",
+        "communication_channels",
+        # Pain points & goals
+        "pain_points",
+        "business_goals",
+    }
 
 
 # --- StateService with a custom config --------------------------------------

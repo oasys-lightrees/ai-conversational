@@ -33,9 +33,10 @@ def test_turn_extracts_persists_and_asks_next_question(db_session):
     resp = svc.handle_message(assessment.id, "Saya punya villa di Bali")
 
     assert resp.reply == "Apa tahap bisnis properti Anda saat ini?"
-    # property_type + location present, business_stage missing -> 2/3
-    assert resp.completion_percentage == 67
-    assert resp.next_stage == "BUSINESS_STAGE"
+    # 2 of the 16 always-required fields present.
+    assert resp.completion_percentage == 12
+    # Still inside the property profile (name, ownership, units outstanding).
+    assert resp.next_stage == "PROPERTY_PROFILE"
 
     refreshed = AssessmentService(db_session).get(assessment.id)
     assert refreshed.data.property_type == PropertyType.VILLA
@@ -46,17 +47,40 @@ def test_turn_extracts_persists_and_asks_next_question(db_session):
     assert history[0].message == "Saya punya villa di Bali"
 
 
+# Every always-required field plus the underperforming branch, as the model
+# would emit them (loose casing / aliases are normalized by FieldMapper).
+COMPLETE_EXTRACTION = {
+    # Property profile
+    "property_name": "Villa Mawar",
+    "property_type": "Villa",
+    "location": "Bali",
+    "ownership_type": "Owned",
+    "total_units": 8,
+    # Business stage + its branch
+    "business_stage": "Underperforming",
+    "occupancy_rate": 55,
+    "monthly_revenue": 1000,
+    "average_room_rate": 100,
+    "booking_channels": ["Airbnb"],
+    # Operations
+    "staff_count": 3,
+    "check_in_process": "Manual",
+    "housekeeping_process": "Manual",
+    "maintenance_process": "Semi digital",
+    "complaint_handling": "Manual",
+    # Technology (no PMS, so pms_name stays optional)
+    "uses_pms": False,
+    "accounting_system": "Spreadsheet",
+    "communication_channels": ["WhatsApp"],
+    # Pain points & goals
+    "pain_points": ["Okupansi rendah"],
+    "business_goals": ["Naikkan okupansi"],
+}
+
+
 def test_turn_completes_when_all_required_present(db_session):
     fake = FakeOpenAIService(
-        json_result={
-            "property_type": "Villa",
-            "location": "Bali",
-            "business_stage": "Underperforming",
-            "occupancy_rate": 55,
-            "monthly_revenue": 1000,
-            "average_room_rate": 100,
-            "booking_channels": ["Airbnb"],
-        },
+        json_result=COMPLETE_EXTRACTION,
         text_result="(should not be used)",
     )
     assessment = _new_assessment(db_session)

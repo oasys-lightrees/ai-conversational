@@ -36,8 +36,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     "feature.chat.desc": "Jawab pertanyaan LIA seperti mengobrol biasa — tanpa formulir panjang.",
     "feature.analysis.title": "Analisis Terstruktur",
     "feature.analysis.desc": "Informasi bisnis Anda diekstrak dan dinilai secara otomatis.",
-    "feature.reco.title": "Rekomendasi AI",
-    "feature.reco.desc": "Terima laporan dan rekomendasi yang dipersonalisasi untuk properti Anda.",
+    "feature.coverage.title": "Cakupan Menyeluruh",
+    "feature.coverage.desc":
+      "Profil properti, operasional, teknologi, tantangan, dan tujuan bisnis Anda.",
     "chat.greeting":
       "Halo, saya LIA. Saya akan membantu menilai bisnis properti Anda melalui percakapan singkat. Untuk memulai, boleh ceritakan tentang properti Anda?",
     "chat.placeholder": "Ketik pesan Anda...",
@@ -100,8 +101,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     "feature.chat.desc": "Answer LIA's questions like a normal chat — no long forms.",
     "feature.analysis.title": "Structured Analysis",
     "feature.analysis.desc": "Your business information is extracted and scored automatically.",
-    "feature.reco.title": "AI Recommendations",
-    "feature.reco.desc": "Receive a personalized report and recommendations for your property.",
+    "feature.coverage.title": "Complete Coverage",
+    "feature.coverage.desc":
+      "Your property profile, operations, technology, challenges, and business goals.",
     "chat.greeting":
       "Hi, I'm LIA. I'll help assess your property business through a short conversation. To start, could you tell me about your property?",
     "chat.placeholder": "Type your message...",

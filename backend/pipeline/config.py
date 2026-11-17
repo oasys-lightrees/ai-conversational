@@ -16,6 +16,16 @@ from pydantic import BaseModel, Field
 FieldType = Literal["string", "integer", "decimal", "boolean", "list", "enum"]
 
 
+def _match_key(value: object) -> str:
+    """Normalize a value for ``required_when`` matching.
+
+    Case- and whitespace-insensitive, so a spec can write ``["true"]`` and match
+    a boolean field's Python ``True``, or ``["underperforming"]`` and match an
+    enum field's ``"UNDERPERFORMING"``.
+    """
+    return str(value).strip().lower()
+
+
 class FieldSpec(BaseModel):
     """One collectable field."""
 
@@ -39,7 +49,7 @@ class FieldSpec(BaseModel):
             return True
         if self.required_when:
             return all(
-                str(state.get(field)) in [str(v) for v in values]
+                _match_key(state.get(field)) in {_match_key(v) for v in values}
                 for field, values in self.required_when.items()
             )
         return False

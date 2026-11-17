@@ -18,7 +18,7 @@ export default function LandingPage() {
   const features = [
     { icon: MessagesSquare, title: t("feature.chat.title"), description: t("feature.chat.desc") },
     { icon: ClipboardList, title: t("feature.analysis.title"), description: t("feature.analysis.desc") },
-    { icon: Sparkles, title: t("feature.reco.title"), description: t("feature.reco.desc") },
+    { icon: Sparkles, title: t("feature.coverage.title"), description: t("feature.coverage.desc") },
   ];
 
   return (

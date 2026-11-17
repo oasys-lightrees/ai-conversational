@@ -1,7 +1,12 @@
 """Seed the built-in assessment templates.
 
-Idempotent: templates are upserted by name. Called from ``init_db`` and safe to
-re-run. (Template CRUD via API is deferred; these are the seeded starting set.)
+Idempotent: a template whose name already exists is left untouched, so re-running
+never clobbers operator edits. Called from ``init_db`` and safe to re-run.
+
+Because of that, a change to ``DEFAULT_CONFIG`` does **not** reach a database
+that has already been seeded — new assessments resolve their config from the
+stored template, not from ``DEFAULT_CONFIG``. Use
+:func:`refresh_builtin_templates` to pull such a change through.
 """
 
 from __future__ import annotations
@@ -42,3 +47,33 @@ def seed_default_templates(session: Session) -> None:
             )
         )
     session.commit()
+
+
+def refresh_builtin_templates(session: Session) -> list[str]:
+    """Re-sync the built-in templates' configs to the current ``DEFAULT_CONFIG``.
+
+    The opt-in counterpart to :func:`seed_default_templates`, which only ever
+    inserts. Run it after changing ``DEFAULT_CONFIG``::
+
+        python -m backend.database.init_db --refresh-builtins
+
+    Touches only the templates in :data:`SEEDS` (matched by name) and only their
+    ``config`` — operator-created templates are left alone. Hand-edits made to a
+    built-in template through the admin UI *are* overwritten, which is why this
+    is deliberately not part of the normal bootstrap.
+
+    In-flight assessments are unaffected: each one runs against the config
+    snapshotted onto it at start. Returns the names it changed.
+    """
+    by_name = {t.name: t for t in session.scalars(select(AssessmentTemplate)).all()}
+    updated: list[str] = []
+    for seed in SEEDS:
+        template = by_name.get(seed["name"])
+        if template is None:
+            continue
+        config = seed["config"].model_dump()
+        if template.config != config:
+            template.config = config
+            updated.append(template.name)
+    session.commit()
+    return updated

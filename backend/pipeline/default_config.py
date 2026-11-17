@@ -1,9 +1,14 @@
 """The default pipeline configuration.
 
-Reproduces the original hardcoded hospitality schema exactly, so that with no
-template selected the pipeline behaves identically to before. It is also the
-regression oracle: the config-driven logic must match the previous constants
-under this config.
+The hospitality schema used when no template is selected.
+
+Requiredness drives the conversation: ``StateService`` only reports currently
+*required* fields as missing, and Prompt 3 is forbidden from straying off the
+missing list (see ``chat_service._next_question_system``). An optional field is
+therefore never asked about, so every field the assessment is expected to
+collect is marked ``required`` (or ``required_when`` where it only applies in
+context, like ``pms_name``). Leave a field optional only if it is genuinely
+fine for it to stay empty forever.
 """
 
 from __future__ import annotations
@@ -39,7 +44,7 @@ DEFAULT_CONFIG = PipelineConfig(
     language="id",
     fields=[
         # --- Property profile ---
-        FieldSpec(name="property_name", label="Nama Properti", type="string", section="PROPERTY_PROFILE"),
+        FieldSpec(name="property_name", label="Nama Properti", type="string", required=True, section="PROPERTY_PROFILE"),
         FieldSpec(
             name="property_type",
             label="Jenis Properti",
@@ -56,8 +61,8 @@ DEFAULT_CONFIG = PipelineConfig(
             required=True,
             section="PROPERTY_PROFILE",
         ),
-        FieldSpec(name="ownership_type", label="Kepemilikan", type="enum", enum_options=_OWNERSHIP, section="PROPERTY_PROFILE"),
-        FieldSpec(name="total_units", label="Jumlah Unit", type="integer", section="PROPERTY_PROFILE"),
+        FieldSpec(name="ownership_type", label="Kepemilikan", type="enum", enum_options=_OWNERSHIP, required=True, section="PROPERTY_PROFILE"),
+        FieldSpec(name="total_units", label="Jumlah Unit", type="integer", required=True, section="PROPERTY_PROFILE"),
         # --- Business stage ---
         FieldSpec(
             name="business_stage",
@@ -79,18 +84,18 @@ DEFAULT_CONFIG = PipelineConfig(
         FieldSpec(name="expansion_plan", label="Rencana Ekspansi", type="string", required_when={"business_stage": ["OPERATING_SUCCESSFULLY"]}, section="BRANCH"),
         FieldSpec(name="automation_interest", label="Minat Otomasi", type="string", required_when={"business_stage": ["OPERATING_SUCCESSFULLY"]}, section="BRANCH"),
         # --- Operations ---
-        FieldSpec(name="staff_count", label="Jumlah Staf", type="integer", section="OPERATIONS"),
-        FieldSpec(name="check_in_process", label="Proses Check-in", type="enum", enum_options=_PROCESS, section="OPERATIONS"),
-        FieldSpec(name="housekeeping_process", label="Proses Housekeeping", type="enum", enum_options=_PROCESS, section="OPERATIONS"),
-        FieldSpec(name="maintenance_process", label="Proses Pemeliharaan", type="enum", enum_options=_PROCESS, section="OPERATIONS"),
-        FieldSpec(name="complaint_handling", label="Penanganan Keluhan", type="enum", enum_options=_PROCESS, section="OPERATIONS"),
+        FieldSpec(name="staff_count", label="Jumlah Staf", type="integer", required=True, section="OPERATIONS"),
+        FieldSpec(name="check_in_process", label="Proses Check-in", type="enum", enum_options=_PROCESS, required=True, section="OPERATIONS"),
+        FieldSpec(name="housekeeping_process", label="Proses Housekeeping", type="enum", enum_options=_PROCESS, required=True, section="OPERATIONS"),
+        FieldSpec(name="maintenance_process", label="Proses Pemeliharaan", type="enum", enum_options=_PROCESS, required=True, section="OPERATIONS"),
+        FieldSpec(name="complaint_handling", label="Penanganan Keluhan", type="enum", enum_options=_PROCESS, required=True, section="OPERATIONS"),
         # --- Technology ---
-        FieldSpec(name="uses_pms", label="Menggunakan PMS", type="boolean", section="TECHNOLOGY"),
-        FieldSpec(name="pms_name", label="Nama PMS", type="string", section="TECHNOLOGY"),
-        FieldSpec(name="accounting_system", label="Sistem Akuntansi", type="string", section="TECHNOLOGY"),
-        FieldSpec(name="communication_channels", label="Kanal Komunikasi", type="list", section="TECHNOLOGY"),
+        FieldSpec(name="uses_pms", label="Menggunakan PMS", type="boolean", required=True, section="TECHNOLOGY"),
+        FieldSpec(name="pms_name", label="Nama PMS", type="string", required_when={"uses_pms": ["true"]}, section="TECHNOLOGY"),
+        FieldSpec(name="accounting_system", label="Sistem Akuntansi", type="string", required=True, section="TECHNOLOGY"),
+        FieldSpec(name="communication_channels", label="Kanal Komunikasi", type="list", required=True, section="TECHNOLOGY"),
         # --- Pain points & goals ---
-        FieldSpec(name="pain_points", label="Tantangan", type="list", section="PAIN_POINTS"),
-        FieldSpec(name="business_goals", label="Tujuan Bisnis", type="list", section="GOALS"),
+        FieldSpec(name="pain_points", label="Tantangan", type="list", required=True, section="PAIN_POINTS"),
+        FieldSpec(name="business_goals", label="Tujuan Bisnis", type="list", required=True, section="GOALS"),
     ],
 )

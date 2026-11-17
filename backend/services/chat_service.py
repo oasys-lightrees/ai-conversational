@@ -38,10 +38,7 @@ logger = logging.getLogger(__name__)
 # Localized static copy (used when no model call is made). Keyed by config language.
 _STATIC = {
     "id": {
-        "closing": (
-            "Terima kasih! Semua informasi yang dibutuhkan sudah terkumpul. "
-            "Kami akan menyiapkan laporan asesmen Anda."
-        ),
+        "closing": "Terima kasih! Semua informasi yang dibutuhkan sudah terkumpul.",
         "rephrase": (
             "Maaf, saya belum sepenuhnya menangkap informasinya. "
             "Bisa tolong jelaskan kembali?"
@@ -49,10 +46,7 @@ _STATIC = {
         "generic": "Terima kasih. Bisa ceritakan lebih lanjut tentang properti Anda?",
     },
     "en": {
-        "closing": (
-            "Thank you! We have all the information we need. "
-            "We'll prepare your assessment report."
-        ),
+        "closing": "Thank you! We've collected all the information we need.",
         "rephrase": "Sorry, I didn't quite catch that. Could you rephrase?",
         "generic": "Thank you. Could you tell me more about your property?",
     },
